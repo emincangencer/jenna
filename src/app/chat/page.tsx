@@ -46,9 +46,116 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from '@/components/ai-elements/reasoning';
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from '@/components/ai-elements/tool';
 import { Loader } from '@/components/ai-elements/loader';
+import { type ToolUIPart } from 'ai';
 
 import { models } from '@/lib/models';
+
+type WebSearchToolInput = {
+  query: string;
+};
+
+type WebSearchToolOutput = Array<{
+  content: string;
+  link: string;
+  title: string;
+}>;
+
+type WebSearchToolUIPart = ToolUIPart<{
+  webSearch: {
+    input: WebSearchToolInput;
+    output: WebSearchToolOutput;
+  };
+}>;
+
+type ListFilesToolInput = {
+  pathToList?: string;
+};
+
+type ListFilesToolOutput = Array<{
+  name: string;
+  type: 'directory' | 'file';
+}> | { error: string };
+
+type ListFilesToolUIPart = ToolUIPart<{
+  listFiles: {
+    input: ListFilesToolInput;
+    output: ListFilesToolOutput;
+  };
+}>;
+
+type ReadFileToolInput = {
+  filePath: string;
+};
+
+type ReadFileToolOutput = {
+  content: string;
+} | { error: string };
+
+type ReadFileToolUIPart = ToolUIPart<{
+  readFile: {
+    input: ReadFileToolInput;
+    output: ReadFileToolOutput;
+  };
+}>;
+
+type WriteFileToolInput = {
+  filePath: string;
+  content: string;
+};
+
+type WriteFileToolOutput = {
+  success: boolean;
+  message: string;
+} | { error: string };
+
+type WriteFileToolUIPart = ToolUIPart<{
+  writeFile: {
+    input: WriteFileToolInput;
+    output: WriteFileToolOutput;
+  };
+}>;
+
+type EditFileToolInput = {
+  filePath: string;
+  oldString: string;
+  newString: string;
+};
+
+type EditFileToolOutput = {
+  success: boolean;
+  message: string;
+} | { error: string };
+
+type EditFileToolUIPart = ToolUIPart<{
+  editFile: {
+    input: EditFileToolInput;
+    output: EditFileToolOutput;
+  };
+}>;
+
+type RunShellCommandToolInput = {
+  command: string;
+};
+
+type RunShellCommandToolOutput = {
+  stdout: string;
+  stderr: string;
+} | { error: string; stdout: string; stderr: string };
+
+type RunShellCommandToolUIPart = ToolUIPart<{
+  runShellCommand: {
+    input: RunShellCommandToolInput;
+    output: RunShellCommandToolOutput;
+  };
+}>;
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState('');
@@ -156,6 +263,102 @@ const ChatBotDemo = () => {
                           <ReasoningContent>{part.text}</ReasoningContent>
                         </Reasoning>
                       );
+                    case 'tool-webSearch':
+                      {
+                        const webSearchTool = part as WebSearchToolUIPart;
+                        return (
+                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
+                            <ToolHeader type="tool-webSearch" state={webSearchTool.state} />
+                            <ToolContent>
+                              <ToolInput input={JSON.stringify(webSearchTool.input, null, 2)} />
+                              <ToolOutput
+                                output={JSON.stringify(webSearchTool.output, null, 2)}
+                                errorText={webSearchTool.errorText}
+                              />
+                            </ToolContent>
+                          </Tool>
+                        );
+                      }
+                    case 'tool-listFiles':
+                      {
+                        const listFilesTool = part as ListFilesToolUIPart;
+                        return (
+                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
+                            <ToolHeader type="tool-listFiles" state={listFilesTool.state} />
+                            <ToolContent>
+                              <ToolInput input={JSON.stringify(listFilesTool.input, null, 2)} />
+                              <ToolOutput
+                                output={JSON.stringify(listFilesTool.output, null, 2)}
+                                errorText={listFilesTool.errorText}
+                              />
+                            </ToolContent>
+                          </Tool>
+                        );
+                      }
+                    case 'tool-readFile':
+                      {
+                        const readFileTool = part as ReadFileToolUIPart;
+                        return (
+                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
+                            <ToolHeader type="tool-readFile" state={readFileTool.state} />
+                            <ToolContent>
+                              <ToolInput input={JSON.stringify(readFileTool.input, null, 2)} />
+                              <ToolOutput
+                                output={JSON.stringify(readFileTool.output, null, 2)}
+                                errorText={readFileTool.errorText}
+                              />
+                            </ToolContent>
+                          </Tool>
+                        );
+                      }
+                    case 'tool-writeFile':
+                      {
+                        const writeFileTool = part as WriteFileToolUIPart;
+                        return (
+                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
+                            <ToolHeader type="tool-writeFile" state={writeFileTool.state} />
+                            <ToolContent>
+                              <ToolInput input={JSON.stringify(writeFileTool.input, null, 2)} />
+                              <ToolOutput
+                                output={JSON.stringify(writeFileTool.output, null, 2)}
+                                errorText={writeFileTool.errorText}
+                              />
+                            </ToolContent>
+                          </Tool>
+                        );
+                      }
+                    case 'tool-editFile':
+                      {
+                        const editFileTool = part as EditFileToolUIPart;
+                        return (
+                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
+                            <ToolHeader type="tool-editFile" state={editFileTool.state} />
+                            <ToolContent>
+                              <ToolInput input={JSON.stringify(editFileTool.input, null, 2)} />
+                              <ToolOutput
+                                output={JSON.stringify(editFileTool.output, null, 2)}
+                                errorText={editFileTool.errorText}
+                              />
+                            </ToolContent>
+                          </Tool>
+                        );
+                      }
+                    case 'tool-runShellCommand':
+                      {
+                        const runShellCommandTool = part as RunShellCommandToolUIPart;
+                        return (
+                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
+                            <ToolHeader type="tool-runShellCommand" state={runShellCommandTool.state} />
+                            <ToolContent>
+                              <ToolInput input={JSON.stringify(runShellCommandTool.input, null, 2)} />
+                              <ToolOutput
+                                output={JSON.stringify(runShellCommandTool.output, null, 2)}
+                                errorText={runShellCommandTool.errorText}
+                              />
+                            </ToolContent>
+                          </Tool>
+                        );
+                      }
                     default:
                       return null;
                   }
