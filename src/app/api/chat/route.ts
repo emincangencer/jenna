@@ -6,6 +6,7 @@ import { groq } from '@ai-sdk/groq';
 import { models } from '@/lib/models';
 import { listFilesTool, readFileTool, writeFileTool, editFileTool } from '@/lib/tools/file-management';
 import { webSearchTool } from '@/lib/tools/web-search';
+import { runShellCommandTool } from '@/lib/tools/shell';
 
 export async function POST(req: Request) {
   const {
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
       'You are a helpful assistant that can answer questions and help with tasks',
     tools: {
       ...(webSearch && { webSearch: webSearchTool }),
-      ...(enableFileManagement && { listFiles: listFilesTool, readFile: readFileTool, writeFile: writeFileTool, editFile: editFileTool }),
+      ...(enableFileManagement && { listFiles: listFilesTool, readFile: readFileTool, writeFile: writeFileTool, editFile: editFileTool, runShellCommand: runShellCommandTool }),
     },
     stopWhen: stepCountIs(5),
   });
