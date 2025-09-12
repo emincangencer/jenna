@@ -121,7 +121,12 @@ const ChatBotDemo = () => {
                           {message.role === 'assistant' && i === messages.length - 1 && (
                             <Actions className="mt-2">
                               <Action
-                                onClick={() => regenerate()}
+                                onClick={() => regenerate({
+                                  body: {
+                                    model: model,
+                                    webSearch: webSearch,
+                                  },
+                                })}
                                 label="Retry"
                               >
                                 <RefreshCcwIcon className="size-3" />
