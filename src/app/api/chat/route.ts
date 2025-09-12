@@ -4,7 +4,7 @@ import { google } from '@ai-sdk/google'
 import { openai } from '@ai-sdk/openai';
 import { groq } from '@ai-sdk/groq';
 import { models } from '@/lib/models';
-import { listFilesTool } from '@/lib/tools/file-management';
+import { listFilesTool, readFileTool, writeFileTool, editFileTool } from '@/lib/tools/file-management';
 import { webSearchTool } from '@/lib/tools/web-search';
 
 export async function POST(req: Request) {
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       'You are a helpful assistant that can answer questions and help with tasks',
     tools: {
       ...(webSearch && { webSearch: webSearchTool }),
-      ...(enableFileManagement && { listFiles: listFilesTool }),
+      ...(enableFileManagement && { listFiles: listFilesTool, readFile: readFileTool, writeFile: writeFileTool, editFile: editFileTool }),
     },
     stopWhen: stepCountIs(5),
   });
