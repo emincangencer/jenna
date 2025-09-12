@@ -34,7 +34,7 @@ import {
 import { useState, Fragment } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Response } from '@/components/ai-elements/response';
-import { GlobeIcon, RefreshCcwIcon, CopyIcon } from 'lucide-react';
+import { GlobeIcon, RefreshCcwIcon, CopyIcon, FileTextIcon } from 'lucide-react';
 import {
   Source,
   Sources,
@@ -54,6 +54,7 @@ const ChatBotDemo = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
+  const [enableFileManagement, setEnableFileManagement] = useState(false);
   const { messages, sendMessage, status, regenerate } = useChat();
 
   const handleSubmit = (message: PromptInputMessage) => {
@@ -73,6 +74,7 @@ const ChatBotDemo = () => {
         body: {
           model: model,
           webSearch: webSearch,
+          enableFileManagement: enableFileManagement,
         },
       },
     );
@@ -189,6 +191,13 @@ const ChatBotDemo = () => {
               >
                 <GlobeIcon size={16} />
                 <span>Search</span>
+              </PromptInputButton>
+              <PromptInputButton
+                variant={enableFileManagement ? 'default' : 'ghost'}
+                onClick={() => setEnableFileManagement(!enableFileManagement)}
+              >
+                <FileTextIcon size={16} />
+                <span>Files</span>
               </PromptInputButton>
               <PromptInputModelSelect
                 onValueChange={(value) => {

@@ -4,35 +4,20 @@ import { google } from '@ai-sdk/google'
 import { openai } from '@ai-sdk/openai';
 import { groq } from '@ai-sdk/groq';
 import { models } from '@/lib/models';
-import Firecrawl from '@mendable/firecrawl-js';
-import 'dotenv/config';
-
-const firecrawl = new Firecrawl({ apiKey: process.env.FIRECRAWL_API_KEY });
-
-const webSearchTool = tool({
-  description: 'Search the web for up-to-date information',
-  inputSchema: z.object({
-    query: z
-      .string()
-  }),
-  execute: async ({ query }) => {
-    const results = await firecrawl.search(query, {
-      limit: 3,
-      scrapeOptions: { formats: ['markdown'] }
-    });
-    return results;
-  },
-});
+import { listFilesTool } from '@/lib/tools/file-management';
+import { webSearchTool } from '@/lib/tools/web-search';
 
 export async function POST(req: Request) {
   const {
     messages,
     model,
     webSearch,
+    enableFileManagement,
   }: { 
     messages: UIMessage[];
     model: string;
     webSearch: boolean;
+    enableFileManagement: boolean;
   } = await req.json();
 
   const selectedModel = models.find((m) => m.value === model);
@@ -61,7 +46,10 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
     system:
       'You are a helpful assistant that can answer questions and help with tasks',
-    tools: webSearch ? { webSearch: webSearchTool } : {},
+    tools: {
+      ...(webSearch && { webSearch: webSearchTool }),
+      ...(enableFileManagement && { listFiles: listFilesTool }),
+    },
     stopWhen: stepCountIs(5),
   });
 
