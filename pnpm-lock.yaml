@@ -11,6 +11,12 @@ importers:
       '@ai-sdk/google':
         specifier: ^2.0.13
         version: 2.0.13(zod@4.1.8)
+      '@ai-sdk/groq':
+        specifier: ^2.0.18
+        version: 2.0.18(zod@4.1.8)
+      '@ai-sdk/openai':
+        specifier: ^2.0.29
+        version: 2.0.29(zod@4.1.8)
       '@ai-sdk/react':
         specifier: ^2.0.42
         version: 2.0.42(react@19.1.0)(zod@4.1.8)
@@ -131,6 +137,18 @@ packages:
 
   '@ai-sdk/google@2.0.13':
     resolution: {integrity: sha512-5WauM+IrqbllWT4uXZVrfTnPCSKTtkHGNsD2CYD0JgGfeIOpa285UYCYUi0Z4RtcovwnZitvQABq465FfeLwzA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
+  '@ai-sdk/groq@2.0.18':
+    resolution: {integrity: sha512-bXCGShcYAwMMJ6EGdnjI21ImcOcQDRgfTfxm7xsERKUE8rFFjW+8aMUNElXnPs25zZjWZLeMi3ZoQcJtdiuirw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
+  '@ai-sdk/openai@2.0.29':
+    resolution: {integrity: sha512-twrOtwF11VSh0ugtpys4xf3vh7qnk/gofgCeRI4Oh0BNmRox/lBTi1vNGSF4dli5MlGvjnZ0F9XYU5fmJiCVyg==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -3417,6 +3435,18 @@ snapshots:
       zod: 4.1.8
 
   '@ai-sdk/google@2.0.13(zod@4.1.8)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.8(zod@4.1.8)
+      zod: 4.1.8
+
+  '@ai-sdk/groq@2.0.18(zod@4.1.8)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.8(zod@4.1.8)
+      zod: 4.1.8
+
+  '@ai-sdk/openai@2.0.29(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.8(zod@4.1.8)
