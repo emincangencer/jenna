@@ -1,5 +1,4 @@
-import { streamText, UIMessage, convertToModelMessages, tool, stepCountIs } from 'ai';
-import { z } from 'zod';
+import { streamText, UIMessage, convertToModelMessages, stepCountIs } from 'ai';
 import { google } from '@ai-sdk/google'
 import { openai } from '@ai-sdk/openai';
 import { groq } from '@ai-sdk/groq';

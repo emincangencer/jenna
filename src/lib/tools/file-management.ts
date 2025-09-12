@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import * as fs from 'fs/promises';
-import * as path from 'path';
+
 
 export const listFilesTool = tool({
   description: 'List files and directories in a given path. Defaults to the project root if no path is provided.',
@@ -17,8 +17,8 @@ export const listFilesTool = tool({
         name: entry.name,
         type: entry.isDirectory() ? 'directory' : 'file',
       }));
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: (error as Error).message };
     }
   },
 });
@@ -32,8 +32,8 @@ export const readFileTool = tool({
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       return { content };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: (error as Error).message };
     }
   },
 });
@@ -48,8 +48,8 @@ export const writeFileTool = tool({
     try {
       await fs.writeFile(filePath, content, 'utf-8');
       return { success: true, message: `File ${filePath} written successfully.` };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: (error as Error).message };
     }
   },
 });
@@ -67,8 +67,8 @@ export const editFileTool = tool({
       content = content.replace(oldString, newString);
       await fs.writeFile(filePath, content, 'utf-8');
       return { success: true, message: `File ${filePath} edited successfully.` };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: (error as Error).message };
     }
   },
 });
