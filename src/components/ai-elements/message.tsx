@@ -37,6 +37,11 @@ const messageContentVariants = cva(
           "group-[.is-user]:max-w-[80%] group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
           "group-[.is-assistant]:text-foreground",
         ],
+        fullWidth: [
+          "w-full",
+          "group-[.is-user]:bg-transparent group-[.is-user]:text-foreground",
+          "group-[.is-assistant]:bg-transparent group-[.is-assistant]:text-foreground",
+        ],
       },
     },
     defaultVariants: {

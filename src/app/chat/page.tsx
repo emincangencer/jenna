@@ -221,7 +221,7 @@ const ChatBotDemo = () => {
                       return (
                         <Fragment key={`${message.id}-${i}`}>
                           <Message from={message.role}>
-                            <MessageContent>
+                            <MessageContent variant={message.role === 'assistant' ? 'fullWidth' : 'contained'}>
                               <Response>
                                 {part.text}
                               </Response>
