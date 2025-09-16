@@ -272,9 +272,9 @@ const ChatBotDemo = () => {
                           <Tool key={`${message.id}-${i}`} defaultOpen={false}>
                             <ToolHeader type="tool-webSearch" state={webSearchTool.state} />
                             <ToolContent>
-                              <ToolInput input={JSON.stringify(webSearchTool.input, null, 2)} />
+                              <ToolInput input={webSearchTool.input} />
                               <ToolOutput
-                                output={JSON.stringify(webSearchTool.output, null, 2)}
+                                output={webSearchTool.output}
                                 errorText={webSearchTool.errorText}
                               />
                             </ToolContent>
@@ -288,9 +288,9 @@ const ChatBotDemo = () => {
                           <Tool key={`${message.id}-${i}`} defaultOpen={false}>
                             <ToolHeader type="tool-listFiles" state={listFilesTool.state} />
                             <ToolContent>
-                              <ToolInput input={JSON.stringify(listFilesTool.input, null, 2)} />
+                              <ToolInput input={listFilesTool.input} />
                               <ToolOutput
-                                output={JSON.stringify(listFilesTool.output, null, 2)}
+                                output={listFilesTool.output}
                                 errorText={listFilesTool.errorText}
                               />
                             </ToolContent>
@@ -304,9 +304,9 @@ const ChatBotDemo = () => {
                           <Tool key={`${message.id}-${i}`} defaultOpen={false}>
                             <ToolHeader type="tool-readFile" state={readFileTool.state} />
                             <ToolContent>
-                              <ToolInput input={JSON.stringify(readFileTool.input, null, 2)} />
+                              <ToolInput input={readFileTool.input} />
                               <ToolOutput
-                                output={JSON.stringify(readFileTool.output, null, 2)}
+                                output={readFileTool.output}
                                 errorText={readFileTool.errorText}
                               />
                             </ToolContent>
@@ -320,9 +320,9 @@ const ChatBotDemo = () => {
                           <Tool key={`${message.id}-${i}`} defaultOpen={false}>
                             <ToolHeader type="tool-writeFile" state={writeFileTool.state} />
                             <ToolContent>
-                              <ToolInput input={JSON.stringify(writeFileTool.input, null, 2)} />
+                              <ToolInput input={writeFileTool.input} />
                               <ToolOutput
-                                output={JSON.stringify(writeFileTool.output, null, 2)}
+                                output={writeFileTool.output}
                                 errorText={writeFileTool.errorText}
                               />
                             </ToolContent>
@@ -336,9 +336,9 @@ const ChatBotDemo = () => {
                           <Tool key={`${message.id}-${i}`} defaultOpen={false}>
                             <ToolHeader type="tool-editFile" state={editFileTool.state} />
                             <ToolContent>
-                              <ToolInput input={JSON.stringify(editFileTool.input, null, 2)} />
+                              <ToolInput input={editFileTool.input} />
                               <ToolOutput
-                                output={JSON.stringify(editFileTool.output, null, 2)}
+                                output={editFileTool.output}
                                 errorText={editFileTool.errorText}
                               />
                             </ToolContent>
@@ -352,9 +352,9 @@ const ChatBotDemo = () => {
                           <Tool key={`${message.id}-${i}`} defaultOpen={false}>
                             <ToolHeader type="tool-runShellCommand" state={runShellCommandTool.state} />
                             <ToolContent>
-                              <ToolInput input={JSON.stringify(runShellCommandTool.input, null, 2)} />
+                              <ToolInput input={runShellCommandTool.input} />
                               <ToolOutput
-                                output={JSON.stringify(runShellCommandTool.output, null, 2)}
+                                output={runShellCommandTool.output}
                                 errorText={runShellCommandTool.errorText}
                               />
                             </ToolContent>
