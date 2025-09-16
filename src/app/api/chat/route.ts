@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       ...(webSearch && { webSearch: webSearchTool }),
       ...(enableFileManagement && { listFiles: listFilesTool, readFile: readFileTool, writeFile: writeFileTool, editFile: editFileTool, runShellCommand: runShellCommandTool }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(15),
   });
 
   // send sources and reasoning back to the client
