@@ -237,6 +237,7 @@ const ChatBotDemo = () => {
                                   },
                                 })}
                                 label="Retry"
+                                tooltip="Retry"
                               >
                                 <RefreshCcwIcon className="size-3" />
                               </Action>
@@ -245,6 +246,7 @@ const ChatBotDemo = () => {
                                   navigator.clipboard.writeText(part.text)
                                 }
                                 label="Copy"
+                                tooltip="Copy"
                               >
                                 <CopyIcon className="size-3" />
                               </Action>
