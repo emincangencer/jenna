@@ -498,6 +498,7 @@ export const PromptInputTextarea = ({
       }}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
+      autoComplete="off"
       {...props}
     />
   );
