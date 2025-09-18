@@ -31,7 +31,7 @@ import {
   Actions,
   Action
 } from '@/components/ai-elements/actions';
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Response } from '@/components/ai-elements/response';
 import { GlobeIcon, RefreshCcwIcon, CopyIcon, FileTextIcon } from 'lucide-react';
@@ -58,111 +58,37 @@ import { type ToolUIPart } from 'ai';
 
 import { models } from '@/lib/models';
 
-type WebSearchToolInput = {
-  query: string;
-};
+// Removed unused ToolUIPart type definitions
 
-type WebSearchToolOutput = Array<{
-  content: string;
-  link: string;
-  title: string;
-}>;
-
-type WebSearchToolUIPart = ToolUIPart<{
-  webSearch: {
-    input: WebSearchToolInput;
-    output: WebSearchToolOutput;
-  };
-}>;
-
-type ListFilesToolInput = {
-  pathToList?: string;
-};
-
-type ListFilesToolOutput = Array<{
+interface ToolInfo {
   name: string;
-  type: 'directory' | 'file';
-}> | { error: string };
-
-type ListFilesToolUIPart = ToolUIPart<{
-  listFiles: {
-    input: ListFilesToolInput;
-    output: ListFilesToolOutput;
-  };
-}>;
-
-type ReadFileToolInput = {
-  filePath: string;
-};
-
-type ReadFileToolOutput = {
-  content: string;
-} | { error: string };
-
-type ReadFileToolUIPart = ToolUIPart<{
-  readFile: {
-    input: ReadFileToolInput;
-    output: ReadFileToolOutput;
-  };
-}>;
-
-type WriteFileToolInput = {
-  filePath: string;
-  content: string;
-};
-
-type WriteFileToolOutput = {
-  success: boolean;
-  message: string;
-} | { error: string };
-
-type WriteFileToolUIPart = ToolUIPart<{
-  writeFile: {
-    input: WriteFileToolInput;
-    output: WriteFileToolOutput;
-  };
-}>;
-
-type EditFileToolInput = {
-  filePath: string;
-  oldString: string;
-  newString: string;
-};
-
-type EditFileToolOutput = {
-  success: boolean;
-  message: string;
-} | { error: string };
-
-type EditFileToolUIPart = ToolUIPart<{
-  editFile: {
-    input: EditFileToolInput;
-    output: EditFileToolOutput;
-  };
-}>;
-
-type RunShellCommandToolInput = {
-  command: string;
-};
-
-type RunShellCommandToolOutput = {
-  stdout: string;
-  stderr: string;
-} | { error: string; stdout: string; stderr: string };
-
-type RunShellCommandToolUIPart = ToolUIPart<{
-  runShellCommand: {
-    input: RunShellCommandToolInput;
-    output: RunShellCommandToolOutput;
-  };
-}>;
+  description: string;
+}
 
 const ChatBotDemo = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
   const [enableFileManagement, setEnableFileManagement] = useState(false);
+  const [availableTools, setAvailableTools] = useState<ToolInfo[]>([]); // New state for available tools
   const { messages, sendMessage, status, regenerate } = useChat();
+
+  useEffect(() => {
+    const fetchTools = async () => {
+      try {
+        const response = await fetch('/api/tools');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tools');
+        }
+        const data: ToolInfo[] = await response.json();
+        setAvailableTools(data);
+      } catch (error) {
+        console.error('Error fetching available tools:', error);
+      }
+    };
+
+    fetchTools();
+  }, []);
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -265,97 +191,27 @@ const ChatBotDemo = () => {
                           <ReasoningContent>{part.text}</ReasoningContent>
                         </Reasoning>
                       );
-                    case 'tool-webSearch':
+                    case 'dynamic-tool': // Handle dynamic-tool specifically
+                    case part.type.startsWith('tool-') ? part.type : 'never': // Keep existing tool- prefix handling
                       {
-                        const webSearchTool = part as WebSearchToolUIPart;
+                        // Define a generic ToolUIPart type that satisfies the UITools constraint
+                        type AnyToolUIPart = ToolUIPart<Record<string, { input: unknown; output: unknown }>>;
+                        const genericTool = part as AnyToolUIPart; // Cast to the generic ToolUIPart
+                        // Extract tool name: try to get it from genericTool.toolName or genericTool.name, otherwise use part.type
+                        const toolName = (typeof genericTool === 'object' && genericTool !== null && 'toolName' in genericTool && typeof (genericTool as { toolName: unknown }).toolName === 'string')
+                          ? (genericTool as { toolName: string }).toolName
+                          : (typeof genericTool === 'object' && genericTool !== null && 'name' in genericTool && typeof (genericTool as { name: unknown }).name === 'string')
+                            ? (genericTool as { name: string }).name
+                            : part.type.replace('tool-', '');
+
                         return (
                           <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type="tool-webSearch" state={webSearchTool.state} />
+                            <ToolHeader type={`tool-${toolName}` as `tool-${string}`} state={genericTool.state} />
                             <ToolContent>
-                              <ToolInput input={webSearchTool.input} />
+                              <ToolInput input={genericTool.input as Record<string, unknown>} />
                               <ToolOutput
-                                output={webSearchTool.output}
-                                errorText={webSearchTool.errorText}
-                              />
-                            </ToolContent>
-                          </Tool>
-                        );
-                      }
-                    case 'tool-listFiles':
-                      {
-                        const listFilesTool = part as ListFilesToolUIPart;
-                        return (
-                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type="tool-listFiles" state={listFilesTool.state} />
-                            <ToolContent>
-                              <ToolInput input={listFilesTool.input} />
-                              <ToolOutput
-                                output={listFilesTool.output}
-                                errorText={listFilesTool.errorText}
-                              />
-                            </ToolContent>
-                          </Tool>
-                        );
-                      }
-                    case 'tool-readFile':
-                      {
-                        const readFileTool = part as ReadFileToolUIPart;
-                        return (
-                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type="tool-readFile" state={readFileTool.state} />
-                            <ToolContent>
-                              <ToolInput input={readFileTool.input} />
-                              <ToolOutput
-                                output={readFileTool.output}
-                                errorText={readFileTool.errorText}
-                              />
-                            </ToolContent>
-                          </Tool>
-                        );
-                      }
-                    case 'tool-writeFile':
-                      {
-                        const writeFileTool = part as WriteFileToolUIPart;
-                        return (
-                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type="tool-writeFile" state={writeFileTool.state} />
-                            <ToolContent>
-                              <ToolInput input={writeFileTool.input} />
-                              <ToolOutput
-                                output={writeFileTool.output}
-                                errorText={writeFileTool.errorText}
-                              />
-                            </ToolContent>
-                          </Tool>
-                        );
-                      }
-                    case 'tool-editFile':
-                      {
-                        const editFileTool = part as EditFileToolUIPart;
-                        return (
-                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type="tool-editFile" state={editFileTool.state} />
-                            <ToolContent>
-                              <ToolInput input={editFileTool.input} />
-                              <ToolOutput
-                                output={editFileTool.output}
-                                errorText={editFileTool.errorText}
-                              />
-                            </ToolContent>
-                          </Tool>
-                        );
-                      }
-                    case 'tool-runShellCommand':
-                      {
-                        const runShellCommandTool = part as RunShellCommandToolUIPart;
-                        return (
-                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type="tool-runShellCommand" state={runShellCommandTool.state} />
-                            <ToolContent>
-                              <ToolInput input={runShellCommandTool.input} />
-                              <ToolOutput
-                                output={runShellCommandTool.output}
-                                errorText={runShellCommandTool.errorText}
+                                output={genericTool.output as Record<string, unknown>}
+                                errorText={genericTool.errorText}
                               />
                             </ToolContent>
                           </Tool>
@@ -404,23 +260,49 @@ const ChatBotDemo = () => {
                 <FileTextIcon size={16} />
                 <span>Files</span>
               </PromptInputButton>
-              <PromptInputModelSelect
-                onValueChange={(value) => {
-                  setModel(value);
-                }}
-                value={model}
-              >
-                <PromptInputModelSelectTrigger>
-                  <PromptInputModelSelectValue />
-                </PromptInputModelSelectTrigger>
-                <PromptInputModelSelectContent>
-                  {models.map((model) => (
-                    <PromptInputModelSelectItem key={model.value} value={model.value}>
-                      {model.name}
-                    </PromptInputModelSelectItem>
-                  ))}
-                </PromptInputModelSelectContent>
-              </PromptInputModelSelect>
+
+              {/* New Dropdown for Available Tools */}
+              {availableTools.length > 0 && (
+                <div className="ml-2"> {/* Wrap in a div and apply margin here */}
+                  <PromptInputActionMenu>
+                    <PromptInputActionMenuTrigger className="flex items-center justify-center w-full">
+                      <span>Tools ({availableTools.length})</span>
+                    </PromptInputActionMenuTrigger>
+                    <PromptInputActionMenuContent>
+                      <div className="p-2 w-64"> {/* Added w-64 for wider dropdown content */}
+                        <h4 className="text-sm font-semibold mb-1">Available Tools:</h4>
+                        <ul className="list-disc list-inside text-xs">
+                          {availableTools.map((tool) => (
+                            <li key={tool.name}>
+                              <strong>{tool.name}</strong>: {tool.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </PromptInputActionMenuContent>
+                  </PromptInputActionMenu>
+                </div>
+              )}
+
+              <div className="ml-2"> {/* Wrap in a div and apply margin here */}
+                <PromptInputModelSelect
+                  onValueChange={(value) => {
+                    setModel(value);
+                  }}
+                  value={model}
+                >
+                  <PromptInputModelSelectTrigger>
+                    <PromptInputModelSelectValue />
+                  </PromptInputModelSelectTrigger>
+                  <PromptInputModelSelectContent>
+                    {models.map((model) => (
+                      <PromptInputModelSelectItem key={model.value} value={model.value}>
+                        {model.name}
+                      </PromptInputModelSelectItem>
+                    ))}
+                  </PromptInputModelSelectContent>
+                </PromptInputModelSelect>
+              </div>
             </PromptInputTools>
             <PromptInputSubmit disabled={!input && !status} status={status} />
           </PromptInputToolbar>
