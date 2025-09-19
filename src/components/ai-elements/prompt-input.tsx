@@ -462,6 +462,8 @@ export const PromptInputTextarea = ({
   placeholder = "What would you like to know?",
   ...props
 }: PromptInputTextareaProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === "Enter") {
       // Don't submit if IME composition is in progress
@@ -483,10 +485,33 @@ export const PromptInputTextarea = ({
     }
   };
 
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to recalculate scrollHeight correctly
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+
+      // Apply max-height and min-height constraints
+      const maxHeight = 48 * 4; // Assuming 1 unit = 4px (tailwind default)
+      const minHeight = 16 * 4;
+      if (textarea.scrollHeight > maxHeight) {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = "auto"; // Enable scroll if content exceeds max height
+      } else if (textarea.scrollHeight < minHeight) {
+        textarea.style.height = `${minHeight}px`;
+        textarea.style.overflowY = "hidden";
+      } else {
+        textarea.style.overflowY = "hidden";
+      }
+    }
+  }, [props.value]); // Re-run when the value changes
+
   return (
     <Textarea
+      ref={textareaRef}
       className={cn(
-        "w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0",
+        "w-full resize-none overflow-hidden rounded-none border-none p-3 shadow-none outline-none ring-0",
         "field-sizing-content bg-transparent dark:bg-transparent",
         "max-h-48 min-h-16",
         "focus-visible:ring-0",
