@@ -137,6 +137,7 @@ const ChatBotDemo = () => {
           enableWriteFile: toolStates['writeFile'] || false,
           enableEditFile: toolStates['editFile'] || false,
           enableRunCommand: toolStates['runShellCommand'] || false,
+          toolStates: toolStates,
         },
       },
     );

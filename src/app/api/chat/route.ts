@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     enableWriteFile,
     enableEditFile,
     enableRunCommand,
+    toolStates,
   }: {
     messages: UIMessage[];
     model: string;
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
     enableWriteFile: boolean;
     enableEditFile: boolean;
     enableRunCommand: boolean;
+    toolStates: Record<string, boolean>;
   } = await req.json();
 
   const selectedModel = models.find((m) => m.value === model);
@@ -65,6 +67,12 @@ interface Settings {
   mcpServers?: Record<string, MCPTransportConfig>;
 }
 
+interface StreamTextTool {
+  execute: (input: unknown) => Promise<unknown>;
+  description: string;
+  inputSchema: unknown;
+}
+
   // Fetch settings to get MCP server configurations
   let settings: Settings = {};
   try {
@@ -78,7 +86,7 @@ interface Settings {
     // Proceed with empty settings if fetching fails
   }
 
-  let mcpTools = {};
+  let mcpTools: Record<string, StreamTextTool> = {};
   const mcpClients: experimental_MCPClient[] = []; // Explicitly type mcpClients
 
   if (settings.mcpServers && typeof settings.mcpServers === 'object' && settings.mcpServers !== null) {
@@ -122,7 +130,7 @@ interface Settings {
         const client = await experimental_createMCPClient({ transport }); // Await client creation
         mcpClients.push(client);
         const tools = await client.tools();
-        mcpTools = { ...mcpTools, ...tools };
+        mcpTools = { ...mcpTools, ...tools as Record<string, StreamTextTool> };
       } catch (e) {
         console.error(`Failed to initialize MCP client for server ${serverConfig.id}:`, e);
       }
@@ -141,7 +149,12 @@ interface Settings {
       ...(enableWriteFile && { writeFile: writeFileTool }),
       ...(enableEditFile && { editFile: editFileTool }),
       ...(enableRunCommand && { runShellCommand: runShellCommandTool }),
-      ...mcpTools, // Add MCP tools
+      ...Object.keys(mcpTools).reduce((acc: Record<string, StreamTextTool>, toolName) => {
+        if (toolStates[toolName]) {
+          acc[toolName] = mcpTools[toolName];
+        }
+        return acc;
+      }, {} as Record<string, StreamTextTool>),
     },
     stopWhen: stepCountIs(15),
     onFinish: async () => {
