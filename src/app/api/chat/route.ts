@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     toolStates,
     chatId: incomingChatId,
     action, // 'createChat' or 'sendMessage'
+    skipStream,
   }: {
     messages: UIMessage[];
     model: string;
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     toolStates: Record<string, boolean>;
     chatId?: string;
     action?: 'createChat' | 'sendMessage';
+    skipStream?: boolean; // New flag
   } = await req.json();
 
   let currentChatId = incomingChatId;
@@ -125,6 +127,14 @@ export async function POST(req: Request) {
       role: message.role,
       content: messageContent,
     }).run();
+  }
+
+  // If skipStream flag is set, just return success without streaming
+  if (skipStream) {
+    return new Response(JSON.stringify({ chatId: currentChatId, success: true }), { 
+      status: 200, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
   }
 
   allMessages = [...allMessages, ...messages];

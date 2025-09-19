@@ -28,8 +28,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { ToolSelection, StructuredToolInfo } from '@/components/ai-elements/tool-selection';
 import { models } from '@/lib/models';
 
-
-
 const NewChatPage = () => {
   const router = useRouter();
 
@@ -38,7 +36,7 @@ const NewChatPage = () => {
   const [toolStates, setToolStates] = useState<Record<string, boolean>>({});
   const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({ defaultTools: [], mcpServersTools: {} });
   const [isCreatingChat, setIsCreatingChat] = useState(false);
-  const { status } = useChat({}); // Removed sendMessage and regenerate as they are not used directly here
+  const { status } = useChat({});
 
   useEffect(() => {
     const fetchTools = async () => {
@@ -76,50 +74,28 @@ const NewChatPage = () => {
       return;
     }
 
-    // Pre-generate chat ID for immediate navigation
     const newChatId = uuidv4();
     setIsCreatingChat(true);
 
-    // Navigate immediately to reduce perceived delay
-    sessionStorage.setItem('initialChatMessage', message.text || 'Sent with attachments');
-    router.push(`/chat/${newChatId}`);
-
-    // Create the chat in the background
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'createChat', // Add this line
-          messages: [], // Keep this as empty, as the message will be sent by the chat/[chatId]/page.tsx
-          model: model,
-          webSearch: toolStates['webSearch'] || false,
-          enableListFiles: toolStates['listFiles'] || false,
-          enableReadFile: toolStates['readFile'] || false,
-          enableWriteFile: toolStates['writeFile'] || false,
-          enableEditFile: toolStates['editFile'] || false,
-          enableRunCommand: toolStates['runShellCommand'] || false,
-          toolStates: toolStates,
-          chatId: newChatId, // Pass the pre-generated chat ID
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create new chat: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error creating new chat:', error);
-      // Handle error - perhaps show a notification to the user
-    } finally {
-      setIsCreatingChat(false);
-    }
+    // Store the initial message and metadata in a more robust way
+    const chatInitData = {
+      message: message.text || 'Sent with attachments',
+      files: message.files,
+      model: model,
+      toolStates: toolStates,
+      timestamp: Date.now() // Add timestamp to handle stale data
+    };
+    
+    // Use both sessionStorage and URL params for redundancy
+    sessionStorage.setItem(`chat-init-${newChatId}`, JSON.stringify(chatInitData));
+    
+    // Navigate with the chat ID
+    router.push(`/chat/${newChatId}?new=true`);
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
-      <div className="flex flex-col h-full justify-end"> {/* Added justify-end to push prompt input to bottom */}
+      <div className="flex flex-col h-full justify-end">
         <PromptInput onSubmit={handleSubmit} className="mt-4" globalDrop multiple>
           <PromptInputBody>
             <PromptInputAttachments>
@@ -139,14 +115,13 @@ const NewChatPage = () => {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
 
-
               <ToolSelection
                 structuredTools={structuredTools}
                 toolStates={toolStates}
                 setToolStates={setToolStates}
               />
 
-              <div className="ml-2"> {/* Wrap in a div and apply margin here */}
+              <div className="ml-2">
                 <PromptInputModelSelect
                   onValueChange={(value) => {
                     setModel(value);

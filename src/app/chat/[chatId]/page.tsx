@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   Conversation,
   ConversationContent,
@@ -31,7 +31,7 @@ import {
   Actions,
   Action
 } from '@/components/ai-elements/actions';
-import { useState, Fragment, useEffect } from 'react';
+import { useState, Fragment, useEffect, useRef } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Response } from '@/components/ai-elements/response';
 import { RefreshCcwIcon, CopyIcon } from 'lucide-react';
@@ -54,12 +54,7 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool';
 import { Loader } from '@/components/ai-elements/loader';
-
-
-
-
 import { type ToolUIPart } from 'ai';
-
 import { ToolSelection, StructuredToolInfo } from '@/components/ai-elements/tool-selection';
 import { models } from '@/lib/models';
 
@@ -77,56 +72,124 @@ interface ChatMessage {
   parts: Array<{ type: 'text'; text: string }>;
 }
 
-
-
 const ChatPage = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
   const chatId = params.chatId as string;
+  const isNewChat = searchParams.get('new') === 'true';
 
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [toolStates, setToolStates] = useState<Record<string, boolean>>({});
   const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({ defaultTools: [], mcpServersTools: {} });
-  const [isInitialMessageSent, setIsInitialMessageSent] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(isNewChat);
+  const initialMessageSentRef = useRef(false);
+  const chatCreatedRef = useRef(false);
 
   const { messages, setMessages, sendMessage, status, regenerate } = useChat({
     id: chatId,
   });
 
+  // Handle new chat initialization
   useEffect(() => {
-    const storedMessage = sessionStorage.getItem('initialChatMessage');
-    if (storedMessage && !isInitialMessageSent) {
-      // Send the message to the AI (this will automatically update the messages state via useChat)
-      sendMessage(
-        {
-          text: storedMessage,
-        },
-        {
-          body: {
-            model: model,
-            webSearch: toolStates['webSearch'] || false,
-            enableListFiles: toolStates['listFiles'] || false,
-            enableReadFile: toolStates['readFile'] || false,
-            enableWriteFile: toolStates['writeFile'] || false,
-            enableEditFile: toolStates['editFile'] || false,
-            enableRunCommand: toolStates['runShellCommand'] || false,
-            toolStates: toolStates,
-            chatId: chatId,
-          },
-        },
-      );
+    if (!isNewChat || initialMessageSentRef.current) return;
 
-      sessionStorage.removeItem('initialChatMessage'); // Clean up
-      setIsInitialMessageSent(true);
-    }
-  }, [sendMessage, model, toolStates, chatId, isInitialMessageSent]);
-
-  useEffect(() => {
-    const fetchInitialMessages = async () => {
-      if (messages.length > 0) {
+    const initializeNewChat = async () => {
+      const chatInitData = sessionStorage.getItem(`chat-init-${chatId}`);
+      if (!chatInitData) {
+        setIsInitializing(false);
         return;
       }
 
+      try {
+        const { message, files, model: storedModel, toolStates: storedToolStates, timestamp } = JSON.parse(chatInitData);
+        
+        // Check if data is stale (older than 5 seconds)
+        if (Date.now() - timestamp > 5000) {
+          sessionStorage.removeItem(`chat-init-${chatId}`);
+          setIsInitializing(false);
+          return;
+        }
+
+        // Update states from stored data
+        setModel(storedModel);
+        setToolStates(storedToolStates);
+
+        // Optimistically add the user message to the UI immediately
+        const optimisticMessage = {
+          id: 'temp-' + Date.now(),
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: message }]
+        };
+
+        // Create chat and send message in parallel
+        initialMessageSentRef.current = true;
+
+        // Create chat if needed
+        if (!chatCreatedRef.current) {
+          chatCreatedRef.current = true;
+          fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{
+                role: 'user',
+                parts: [{ type: 'text', text: message }]
+              }],
+              model: storedModel,
+              webSearch: storedToolStates['webSearch'] || false,
+              enableListFiles: storedToolStates['listFiles'] || false,
+              enableReadFile: storedToolStates['readFile'] || false,
+              enableWriteFile: storedToolStates['writeFile'] || false,
+              enableEditFile: storedToolStates['editFile'] || false,
+              enableRunCommand: storedToolStates['runShellCommand'] || false,
+              toolStates: storedToolStates,
+              chatId: chatId,
+              skipStream: true // Add flag to just create chat without streaming response
+            }),
+          }).catch(error => {
+            console.error('Error creating chat:', error);
+          });
+        }
+
+        // Send the actual message for AI response
+        sendMessage(
+          { text: message, files },
+          {
+            body: {
+              model: storedModel,
+              webSearch: storedToolStates['webSearch'] || false,
+              enableListFiles: storedToolStates['listFiles'] || false,
+              enableReadFile: storedToolStates['readFile'] || false,
+              enableWriteFile: storedToolStates['writeFile'] || false,
+              enableEditFile: storedToolStates['editFile'] || false,
+              enableRunCommand: storedToolStates['runShellCommand'] || false,
+              toolStates: storedToolStates,
+              chatId: chatId,
+            },
+          },
+        );
+
+        // Clean up
+        sessionStorage.removeItem(`chat-init-${chatId}`);
+        setIsInitializing(false);
+        
+        // Remove the ?new=true from URL without causing a reload
+        window.history.replaceState({}, '', `/chat/${chatId}`);
+      } catch (error) {
+        console.error('Error initializing chat:', error);
+        setIsInitializing(false);
+      }
+    };
+
+    initializeNewChat();
+  }, [isNewChat, chatId, sendMessage, setMessages]);
+
+  // Fetch existing messages for non-new chats
+  useEffect(() => {
+    if (isNewChat || messages.length > 0) return;
+
+    const fetchInitialMessages = async () => {
       try {
         const response = await fetch(`/api/chat/${chatId}/messages`);
         if (!response.ok) {
@@ -144,11 +207,10 @@ const ChatPage = () => {
       }
     };
 
-    if (chatId) {
-      fetchInitialMessages();
-    }
-  }, [chatId, setMessages, messages.length]);
+    fetchInitialMessages();
+  }, [chatId, isNewChat, setMessages, messages.length]);
 
+  // Fetch tools
   useEffect(() => {
     const fetchTools = async () => {
       try {
@@ -159,23 +221,26 @@ const ChatPage = () => {
         const data: StructuredToolInfo = await response.json();
         setStructuredTools(data);
 
-        const initialToolStates: Record<string, boolean> = {};
-        data.defaultTools.forEach(tool => {
-          initialToolStates[tool.name] = false;
-        });
-        for (const serverId in data.mcpServersTools) {
-          data.mcpServersTools[serverId].forEach(tool => {
+        // Only set initial tool states if we don't have them from new chat
+        if (!isNewChat) {
+          const initialToolStates: Record<string, boolean> = {};
+          data.defaultTools.forEach(tool => {
             initialToolStates[tool.name] = false;
           });
+          for (const serverId in data.mcpServersTools) {
+            data.mcpServersTools[serverId].forEach(tool => {
+              initialToolStates[tool.name] = false;
+            });
+          }
+          setToolStates(initialToolStates);
         }
-        setToolStates(initialToolStates);
       } catch (error) {
         console.error('Error fetching available tools:', error);
       }
     };
 
     fetchTools();
-  }, []);
+  }, [isNewChat]);
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -284,13 +349,11 @@ const ChatPage = () => {
                           <ReasoningContent>{part.text}</ReasoningContent>
                         </Reasoning>
                       );
-                    case 'dynamic-tool': // Handle dynamic-tool specifically
-                    case part.type.startsWith('tool-') ? part.type : 'never': // Keep existing tool- prefix handling
+                    case 'dynamic-tool':
+                    case part.type.startsWith('tool-') ? part.type : 'never':
                       {
-                        // Define a generic ToolUIPart type that satisfies the UITools constraint
                         type AnyToolUIPart = ToolUIPart<Record<string, { input: unknown; output: unknown }>>;
-                        const genericTool = part as AnyToolUIPart; // Cast to the generic ToolUIPart
-                        // Extract tool name: try to get it from genericTool.toolName or genericTool.name, otherwise use part.type
+                        const genericTool = part as AnyToolUIPart;
                         const toolName = (typeof genericTool === 'object' && genericTool !== null && 'toolName' in genericTool && typeof (genericTool as { toolName: unknown }).toolName === 'string')
                           ? (genericTool as { toolName: string }).toolName
                           : (typeof genericTool === 'object' && genericTool !== null && 'name' in genericTool && typeof (genericTool as { name: unknown }).name === 'string')
@@ -316,7 +379,7 @@ const ChatPage = () => {
                 })}
               </div>
             ))}
-            {(status === 'submitted') && <Loader />}
+            {(status === 'submitted' || isInitializing) && <Loader />}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
@@ -340,14 +403,13 @@ const ChatPage = () => {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
 
-
               <ToolSelection
                 structuredTools={structuredTools}
                 toolStates={toolStates}
                 setToolStates={setToolStates}
               />
 
-              <div className="ml-2"> {/* Wrap in a div and apply margin here */}
+              <div className="ml-2">
                 <PromptInputModelSelect
                   onValueChange={(value) => {
                     setModel(value);
