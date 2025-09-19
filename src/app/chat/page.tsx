@@ -15,7 +15,6 @@ import {
   PromptInputAttachment,
   PromptInputAttachments,
   PromptInputBody,
-  PromptInputButton,
   type PromptInputMessage,
   PromptInputModelSelect,
   PromptInputModelSelectContent,
@@ -34,7 +33,7 @@ import {
 import { useState, Fragment, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Response } from '@/components/ai-elements/response';
-import { GlobeIcon, RefreshCcwIcon, CopyIcon, FileTextIcon } from 'lucide-react';
+import { RefreshCcwIcon, CopyIcon, ChevronRight } from 'lucide-react';
 import {
   Source,
   Sources,
@@ -54,23 +53,38 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool';
 import { Loader } from '@/components/ai-elements/loader';
+
+import {
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+
 import { type ToolUIPart } from 'ai';
 
 import { models } from '@/lib/models';
-
-// Removed unused ToolUIPart type definitions
-
 interface ToolInfo {
   name: string;
   description: string;
 }
 
+interface StructuredToolInfo {
+  defaultTools: ToolInfo[];
+  mcpServersTools: Record<string, ToolInfo[]>;
+}
+
 const ChatBotDemo = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
-  const [webSearch, setWebSearch] = useState(false);
-  const [enableFileManagement, setEnableFileManagement] = useState(false);
-  const [availableTools, setAvailableTools] = useState<ToolInfo[]>([]); // New state for available tools
+  const [toolStates, setToolStates] = useState<Record<string, boolean>>({});
+  const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({ defaultTools: [], mcpServersTools: {} });
   const { messages, sendMessage, status, regenerate } = useChat();
 
   useEffect(() => {
@@ -80,8 +94,19 @@ const ChatBotDemo = () => {
         if (!response.ok) {
           throw new Error('Failed to fetch tools');
         }
-        const data: ToolInfo[] = await response.json();
-        setAvailableTools(data);
+        const data: StructuredToolInfo = await response.json();
+        setStructuredTools(data);
+
+        const initialToolStates: Record<string, boolean> = {};
+        data.defaultTools.forEach(tool => {
+          initialToolStates[tool.name] = false;
+        });
+        for (const serverId in data.mcpServersTools) {
+          data.mcpServersTools[serverId].forEach(tool => {
+            initialToolStates[tool.name] = false;
+          });
+        }
+        setToolStates(initialToolStates);
       } catch (error) {
         console.error('Error fetching available tools:', error);
       }
@@ -106,8 +131,7 @@ const ChatBotDemo = () => {
       {
         body: {
           model: model,
-          webSearch: webSearch,
-          enableFileManagement: enableFileManagement,
+          ...toolStates,
         },
       },
     );
@@ -159,7 +183,7 @@ const ChatBotDemo = () => {
                                 onClick={() => regenerate({
                                   body: {
                                     model: model,
-                                    webSearch: webSearch,
+                                    ...toolStates,
                                   },
                                 })}
                                 label="Retry"
@@ -246,38 +270,157 @@ const ChatBotDemo = () => {
                   <PromptInputActionAddAttachments />
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
-              <PromptInputButton
-                variant={webSearch ? 'default' : 'ghost'}
-                onClick={() => setWebSearch(!webSearch)}
-              >
-                <GlobeIcon size={16} />
-                <span>Search</span>
-              </PromptInputButton>
-              <PromptInputButton
-                variant={enableFileManagement ? 'default' : 'ghost'}
-                onClick={() => setEnableFileManagement(!enableFileManagement)}
-              >
-                <FileTextIcon size={16} />
-                <span>Files</span>
-              </PromptInputButton>
 
-              {/* New Dropdown for Available Tools */}
-              {availableTools.length > 0 && (
-                <div className="ml-2"> {/* Wrap in a div and apply margin here */}
+
+              {(structuredTools.defaultTools.length > 0 || Object.keys(structuredTools.mcpServersTools).length > 0) && (
+                <div className="ml-2">
                   <PromptInputActionMenu>
                     <PromptInputActionMenuTrigger className="flex items-center justify-center w-full">
-                      <span>Tools ({availableTools.length})</span>
+                      <span>Tools ({Object.values(toolStates).filter(Boolean).length}/{structuredTools.defaultTools.length + Object.values(structuredTools.mcpServersTools).flat().length})</span>
                     </PromptInputActionMenuTrigger>
                     <PromptInputActionMenuContent>
-                      <div className="p-2 w-64"> {/* Added w-64 for wider dropdown content */}
-                        <h4 className="text-sm font-semibold mb-1">Available Tools:</h4>
-                        <ul className="list-disc list-inside text-xs">
-                          {availableTools.map((tool) => (
-                            <li key={tool.name}>
-                              <strong>{tool.name}</strong>: {tool.description}
-                            </li>
-                          ))}
-                        </ul>
+                      <div className="p-2 w-64 overflow-hidden">
+                        {structuredTools.defaultTools.length > 0 && (
+                          <>
+                            <DropdownMenuLabel>Default Tools:</DropdownMenuLabel>
+                            <DropdownMenuCheckboxItem
+                              checked={structuredTools.defaultTools.every(
+                                (tool) => toolStates[tool.name],
+                              )}
+                              onCheckedChange={(checked) => {
+                                setToolStates((prev) => {
+                                  const newState = { ...prev };
+                                  structuredTools.defaultTools.forEach((tool) => {
+                                    newState[tool.name] = checked;
+                                  });
+                                  return newState;
+                                });
+                              }}
+                              onSelect={(e) => e.preventDefault()}
+                            >
+                              Select All
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                              checked={structuredTools.defaultTools.every(
+                                (tool) => !toolStates[tool.name],
+                              )}
+                              onCheckedChange={(checked) => {
+                                setToolStates((prev) => {
+                                  const newState = { ...prev };
+                                  structuredTools.defaultTools.forEach((tool) => {
+                                    newState[tool.name] = !checked;
+                                  });
+                                  return newState;
+                                });
+                              }}
+                              onSelect={(e) => e.preventDefault()}
+                            >
+                              Deselect All
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuSeparator />
+                            {structuredTools.defaultTools.map((tool) => (
+                              <TooltipProvider key={tool.name}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuCheckboxItem
+                                      checked={toolStates[tool.name] || false}
+                                      onCheckedChange={(checked) =>
+                                        setToolStates((prev) => ({
+                                          ...prev,
+                                          [tool.name]: checked,
+                                        }))
+                                      }
+                                      className={toolStates[tool.name] ? 'bg-accent' : ''}
+                                      onSelect={(e) => e.preventDefault()}
+                                    >
+                                      {tool.name}
+                                    </DropdownMenuCheckboxItem>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{tool.description}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
+                          </>
+                        )}
+
+                        {structuredTools.defaultTools.length > 0 && Object.keys(structuredTools.mcpServersTools).length > 0 && (
+                          <DropdownMenuSeparator />
+                        )}
+
+                        {Object.keys(structuredTools.mcpServersTools).map((serverId) => (
+                          <PromptInputActionMenu key={serverId}>
+                            <PromptInputActionMenuTrigger className="flex items-center justify-between w-full text-sm font-bold mb-1 mt-2">
+                              <span>{serverId} Tools</span>
+                              <ChevronRight className="ml-auto h-4 w-4" />
+                            </PromptInputActionMenuTrigger>
+                            <PromptInputActionMenuContent side="right" align="start">
+                              <div className="p-2 w-64 max-h-80 overflow-x-hidden overflow-y-auto">
+                                <DropdownMenuLabel>{serverId} Tools:</DropdownMenuLabel>
+                            <DropdownMenuCheckboxItem
+                              checked={structuredTools.mcpServersTools[serverId].every(
+                                (tool) => toolStates[tool.name],
+                              )}
+                              onCheckedChange={(checked) => {
+                                setToolStates((prev) => {
+                                  const newState = { ...prev };
+                                  structuredTools.mcpServersTools[serverId].forEach((tool) => {
+                                    newState[tool.name] = checked;
+                                  });
+                                  return newState;
+                                });
+                              }}
+                              onSelect={(e) => e.preventDefault()}
+                            >
+                              Select All
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                              checked={structuredTools.mcpServersTools[serverId].every(
+                                (tool) => !toolStates[tool.name],
+                              )}
+                              onCheckedChange={(checked) => {
+                                setToolStates((prev) => {
+                                  const newState = { ...prev };
+                                  structuredTools.mcpServersTools[serverId].forEach((tool) => {
+                                    newState[tool.name] = !checked;
+                                  });
+                                  return newState;
+                                });
+                              }}
+                              onSelect={(e) => e.preventDefault()}
+                            >
+                              Deselect All
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuSeparator />
+                            {structuredTools.mcpServersTools[serverId].map((tool) => (
+                              <TooltipProvider key={tool.name}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuCheckboxItem
+                                      checked={toolStates[tool.name] || false}
+                                      onCheckedChange={(checked) =>
+                                        setToolStates((prev) => ({
+                                          ...prev,
+                                          [tool.name]: checked,
+                                        }))
+                                      }
+                                      className={toolStates[tool.name] ? 'bg-accent' : ''}
+                                      onSelect={(e) => e.preventDefault()}
+                                    >
+                                      {tool.name}
+                                    </DropdownMenuCheckboxItem>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{tool.description}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
+                              </div>
+                            </PromptInputActionMenuContent>
+                          </PromptInputActionMenu>
+                        ))}
                       </div>
                     </PromptInputActionMenuContent>
                   </PromptInputActionMenu>

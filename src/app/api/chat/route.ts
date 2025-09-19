@@ -15,12 +15,18 @@ export async function POST(req: Request) {
     messages,
     model,
     webSearch,
-    enableFileManagement,
+    enableReadAndListFiles,
+    enableWriteFile,
+    enableEditFile,
+    enableRunCommand,
   }: {
     messages: UIMessage[];
     model: string;
     webSearch: boolean;
-    enableFileManagement: boolean;
+    enableReadAndListFiles: boolean;
+    enableWriteFile: boolean;
+    enableEditFile: boolean;
+    enableRunCommand: boolean;
   } = await req.json();
 
   const selectedModel = models.find((m) => m.value === model);
@@ -44,8 +50,21 @@ export async function POST(req: Request) {
       return new Response('Unknown model provider', { status: 400 });
   }
 
+interface MCPTransportConfig {
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  transportType: 'stdio' | 'http' | 'sse';
+  id?: string;
+}
+
+interface Settings {
+  mcpServers?: Record<string, MCPTransportConfig>;
+}
+
   // Fetch settings to get MCP server configurations
-  let settings: any = {};
+  let settings: Settings = {};
   try {
     const settingsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/settings`);
     if (!settingsResponse.ok) {
@@ -115,7 +134,10 @@ export async function POST(req: Request) {
       'You are a helpful assistant that can answer questions and help with tasks',
     tools: {
       ...(webSearch && { webSearch: webSearchTool }),
-      ...(enableFileManagement && { listFiles: listFilesTool, readFile: readFileTool, writeFile: writeFileTool, editFile: editFileTool, runShellCommand: runShellCommandTool }),
+      ...(enableReadAndListFiles && { listFiles: listFilesTool, readFile: readFileTool }),
+      ...(enableWriteFile && { writeFile: writeFileTool }),
+      ...(enableEditFile && { editFile: editFileTool }),
+      ...(enableRunCommand && { runShellCommand: runShellCommandTool }),
       ...mcpTools, // Add MCP tools
     },
     stopWhen: stepCountIs(15),
