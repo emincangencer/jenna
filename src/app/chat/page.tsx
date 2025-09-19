@@ -131,7 +131,12 @@ const ChatBotDemo = () => {
       {
         body: {
           model: model,
-          ...toolStates,
+          webSearch: toolStates['webSearch'] || false,
+          enableListFiles: toolStates['listFiles'] || false,
+          enableReadFile: toolStates['readFile'] || false,
+          enableWriteFile: toolStates['writeFile'] || false,
+          enableEditFile: toolStates['editFile'] || false,
+          enableRunCommand: toolStates['runShellCommand'] || false,
         },
       },
     );

@@ -15,7 +15,8 @@ export async function POST(req: Request) {
     messages,
     model,
     webSearch,
-    enableReadAndListFiles,
+    enableListFiles,
+    enableReadFile,
     enableWriteFile,
     enableEditFile,
     enableRunCommand,
@@ -23,7 +24,8 @@ export async function POST(req: Request) {
     messages: UIMessage[];
     model: string;
     webSearch: boolean;
-    enableReadAndListFiles: boolean;
+    enableListFiles: boolean;
+    enableReadFile: boolean;
     enableWriteFile: boolean;
     enableEditFile: boolean;
     enableRunCommand: boolean;
@@ -134,7 +136,8 @@ interface Settings {
       'You are a helpful assistant that can answer questions and help with tasks',
     tools: {
       ...(webSearch && { webSearch: webSearchTool }),
-      ...(enableReadAndListFiles && { listFiles: listFilesTool, readFile: readFileTool }),
+      ...(enableListFiles && { listFiles: listFilesTool }),
+      ...(enableReadFile && { readFile: readFileTool }),
       ...(enableWriteFile && { writeFile: writeFileTool }),
       ...(enableEditFile && { editFile: editFileTool }),
       ...(enableRunCommand && { runShellCommand: runShellCommandTool }),
