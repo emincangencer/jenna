@@ -80,7 +80,7 @@ interface StructuredToolInfo {
   mcpServersTools: Record<string, ToolInfo[]>;
 }
 
-const ChatBotDemo = () => {
+const ChatPage = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [toolStates, setToolStates] = useState<Record<string, boolean>>({});
@@ -461,4 +461,4 @@ const ChatBotDemo = () => {
   );
 };
 
-export default ChatBotDemo;
+export default ChatPage;
