@@ -1,6 +1,10 @@
-import type { Metadata } from "next";
+"use client";
+
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "next-themes";
+import { HoverToolbar } from "@/components/chat/hover-toolbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,11 +16,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Jenna",
-  description: "AI assistant.",
-};
-
 import { SettingsProvider } from '../lib/context/settings';
 
 export default function RootLayout({
@@ -25,13 +24,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SettingsProvider>
-          {children}
-        </SettingsProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SettingsProvider>
+            <SidebarProvider defaultOpen={true}>
+              {children}
+              <HoverToolbar />
+            </SidebarProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
