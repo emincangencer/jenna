@@ -115,12 +115,7 @@ const ChatPage = () => {
         setModel(storedModel);
         setToolStates(storedToolStates);
 
-        // Optimistically add the user message to the UI immediately
-        const optimisticMessage = {
-          id: 'temp-' + Date.now(),
-          role: 'user' as const,
-          parts: [{ type: 'text' as const, text: message }]
-        };
+
 
         // Create chat and send message in parallel
         initialMessageSentRef.current = true;
@@ -132,10 +127,7 @@ const ChatPage = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              messages: [{
-                role: 'user',
-                parts: [{ type: 'text', text: message }]
-              }],
+              messages: [],
               model: storedModel,
               webSearch: storedToolStates['webSearch'] || false,
               enableListFiles: storedToolStates['listFiles'] || false,
