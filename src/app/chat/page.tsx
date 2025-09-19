@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  Conversation,
-  ConversationContent,
-  ConversationScrollButton,
-} from '@/components/ai-elements/conversation';
-import { Message, MessageContent } from '@/components/ai-elements/message';
+import { useRouter } from 'next/navigation';
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -26,66 +21,24 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input';
-import {
-  Actions,
-  Action
-} from '@/components/ai-elements/actions';
-import { useState, Fragment, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { Response } from '@/components/ai-elements/response';
-import { RefreshCcwIcon, CopyIcon, ChevronRight } from 'lucide-react';
-import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from '@/components/ai-elements/sources';
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from '@/components/ai-elements/tool';
-import { Loader } from '@/components/ai-elements/loader';
+import { v4 as uuidv4 } from 'uuid';
 
-import {
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
-
-import { type ToolUIPart } from 'ai';
-
+import { ToolSelection, StructuredToolInfo } from '@/components/ai-elements/tool-selection';
 import { models } from '@/lib/models';
-interface ToolInfo {
-  name: string;
-  description: string;
-}
 
-interface StructuredToolInfo {
-  defaultTools: ToolInfo[];
-  mcpServersTools: Record<string, ToolInfo[]>;
-}
 
-const ChatPage = () => {
+
+const NewChatPage = () => {
+  const router = useRouter();
+
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [toolStates, setToolStates] = useState<Record<string, boolean>>({});
   const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({ defaultTools: [], mcpServersTools: {} });
-  const { messages, sendMessage, status, regenerate } = useChat();
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const { status } = useChat({}); // Removed sendMessage and regenerate as they are not used directly here
 
   useEffect(() => {
     const fetchTools = async () => {
@@ -115,7 +68,7 @@ const ChatPage = () => {
     fetchTools();
   }, []);
 
-  const handleSubmit = (message: PromptInputMessage) => {
+  const handleSubmit = async (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
 
@@ -123,13 +76,24 @@ const ChatPage = () => {
       return;
     }
 
-    sendMessage(
-      { 
-        text: message.text || 'Sent with attachments',
-        files: message.files 
-      },
-      {
-        body: {
+    // Pre-generate chat ID for immediate navigation
+    const newChatId = uuidv4();
+    setIsCreatingChat(true);
+
+    // Navigate immediately to reduce perceived delay
+    sessionStorage.setItem('initialChatMessage', message.text || 'Sent with attachments');
+    router.push(`/chat/${newChatId}`);
+
+    // Create the chat in the background
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'createChat', // Add this line
+          messages: [], // Keep this as empty, as the message will be sent by the chat/[chatId]/page.tsx
           model: model,
           webSearch: toolStates['webSearch'] || false,
           enableListFiles: toolStates['listFiles'] || false,
@@ -138,126 +102,24 @@ const ChatPage = () => {
           enableEditFile: toolStates['editFile'] || false,
           enableRunCommand: toolStates['runShellCommand'] || false,
           toolStates: toolStates,
-        },
-      },
-    );
-    setInput('');
+          chatId: newChatId, // Pass the pre-generated chat ID
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create new chat: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error creating new chat:', error);
+      // Handle error - perhaps show a notification to the user
+    } finally {
+      setIsCreatingChat(false);
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
-      <div className="flex flex-col h-full">
-        <Conversation className="h-full">
-          <ConversationContent>
-            {messages.map((message) => (
-              <div key={message.id}>
-                {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                  <Sources>
-                    <SourcesTrigger
-                      count={
-                        message.parts.filter(
-                          (part) => part.type === 'source-url',
-                        ).length
-                      }
-                    />
-                    {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                      <SourcesContent key={`${message.id}-${i}`}>
-                        <Source
-                          key={`${message.id}-${i}`}
-                          href={part.url}
-                          title={part.url}
-                        />
-                      </SourcesContent>
-                    ))}
-                  </Sources>
-                )}
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case 'text':
-                      return (
-                        <Fragment key={`${message.id}-${i}`}>
-                          <Message from={message.role}>
-                            <MessageContent variant={message.role === 'assistant' ? 'fullWidth' : 'contained'}>
-                              <Response>
-                                {part.text}
-                              </Response>
-                            </MessageContent>
-                          </Message>
-                          {message.role === 'assistant' && i === messages.length - 1 && (
-                            <Actions className="mt-2">
-                              <Action
-                                onClick={() => regenerate({
-                                  body: {
-                                    model: model,
-                                    ...toolStates,
-                                  },
-                                })}
-                                label="Retry"
-                                tooltip="Retry"
-                              >
-                                <RefreshCcwIcon className="size-3" />
-                              </Action>
-                              <Action
-                                onClick={() =>
-                                  navigator.clipboard.writeText(part.text)
-                                }
-                                label="Copy"
-                                tooltip="Copy"
-                              >
-                                <CopyIcon className="size-3" />
-                              </Action>
-                            </Actions>
-                          )}
-                        </Fragment>
-                      );
-                    case 'reasoning':
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${i}`}
-                          className="w-full"
-                          isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    case 'dynamic-tool': // Handle dynamic-tool specifically
-                    case part.type.startsWith('tool-') ? part.type : 'never': // Keep existing tool- prefix handling
-                      {
-                        // Define a generic ToolUIPart type that satisfies the UITools constraint
-                        type AnyToolUIPart = ToolUIPart<Record<string, { input: unknown; output: unknown }>>;
-                        const genericTool = part as AnyToolUIPart; // Cast to the generic ToolUIPart
-                        // Extract tool name: try to get it from genericTool.toolName or genericTool.name, otherwise use part.type
-                        const toolName = (typeof genericTool === 'object' && genericTool !== null && 'toolName' in genericTool && typeof (genericTool as { toolName: unknown }).toolName === 'string')
-                          ? (genericTool as { toolName: string }).toolName
-                          : (typeof genericTool === 'object' && genericTool !== null && 'name' in genericTool && typeof (genericTool as { name: unknown }).name === 'string')
-                            ? (genericTool as { name: string }).name
-                            : part.type.replace('tool-', '');
-
-                        return (
-                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type={`tool-${toolName}` as `tool-${string}`} state={genericTool.state} />
-                            <ToolContent>
-                              <ToolInput input={genericTool.input as Record<string, unknown>} />
-                              <ToolOutput
-                                output={genericTool.output as Record<string, unknown>}
-                                errorText={genericTool.errorText}
-                              />
-                            </ToolContent>
-                          </Tool>
-                        );
-                      }
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
-            ))}
-            {status === 'submitted' && <Loader />}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
-
+      <div className="flex flex-col h-full justify-end"> {/* Added justify-end to push prompt input to bottom */}
         <PromptInput onSubmit={handleSubmit} className="mt-4" globalDrop multiple>
           <PromptInputBody>
             <PromptInputAttachments>
@@ -278,160 +140,11 @@ const ChatPage = () => {
               </PromptInputActionMenu>
 
 
-              {(structuredTools.defaultTools.length > 0 || Object.keys(structuredTools.mcpServersTools).length > 0) && (
-                <div className="ml-2">
-                  <PromptInputActionMenu>
-                    <PromptInputActionMenuTrigger className="flex items-center justify-center w-full">
-                      <span>Tools ({Object.values(toolStates).filter(Boolean).length}/{structuredTools.defaultTools.length + Object.values(structuredTools.mcpServersTools).flat().length})</span>
-                    </PromptInputActionMenuTrigger>
-                    <PromptInputActionMenuContent>
-                      <div className="p-2 w-64 overflow-hidden">
-                        {structuredTools.defaultTools.length > 0 && (
-                          <>
-                            <DropdownMenuLabel>Default Tools:</DropdownMenuLabel>
-                            <DropdownMenuCheckboxItem
-                              checked={structuredTools.defaultTools.every(
-                                (tool) => toolStates[tool.name],
-                              )}
-                              onCheckedChange={(checked) => {
-                                setToolStates((prev) => {
-                                  const newState = { ...prev };
-                                  structuredTools.defaultTools.forEach((tool) => {
-                                    newState[tool.name] = checked;
-                                  });
-                                  return newState;
-                                });
-                              }}
-                              onSelect={(e) => e.preventDefault()}
-                            >
-                              Select All
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                              checked={structuredTools.defaultTools.every(
-                                (tool) => !toolStates[tool.name],
-                              )}
-                              onCheckedChange={(checked) => {
-                                setToolStates((prev) => {
-                                  const newState = { ...prev };
-                                  structuredTools.defaultTools.forEach((tool) => {
-                                    newState[tool.name] = !checked;
-                                  });
-                                  return newState;
-                                });
-                              }}
-                              onSelect={(e) => e.preventDefault()}
-                            >
-                              Deselect All
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuSeparator />
-                            {structuredTools.defaultTools.map((tool) => (
-                              <TooltipProvider key={tool.name}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <DropdownMenuCheckboxItem
-                                      checked={toolStates[tool.name] || false}
-                                      onCheckedChange={(checked) =>
-                                        setToolStates((prev) => ({
-                                          ...prev,
-                                          [tool.name]: checked,
-                                        }))
-                                      }
-                                      className={toolStates[tool.name] ? 'bg-accent' : ''}
-                                      onSelect={(e) => e.preventDefault()}
-                                    >
-                                      {tool.name}
-                                    </DropdownMenuCheckboxItem>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{tool.description}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ))}
-                          </>
-                        )}
-
-                        {structuredTools.defaultTools.length > 0 && Object.keys(structuredTools.mcpServersTools).length > 0 && (
-                          <DropdownMenuSeparator />
-                        )}
-
-                        {Object.keys(structuredTools.mcpServersTools).map((serverId) => (
-                          <PromptInputActionMenu key={serverId}>
-                            <PromptInputActionMenuTrigger className="flex items-center justify-between w-full text-sm font-bold mb-1 mt-2">
-                              <span>{serverId} Tools</span>
-                              <ChevronRight className="ml-auto h-4 w-4" />
-                            </PromptInputActionMenuTrigger>
-                            <PromptInputActionMenuContent side="right" align="start">
-                              <div className="p-2 w-64 max-h-80 overflow-x-hidden overflow-y-auto">
-                                <DropdownMenuLabel>{serverId} Tools:</DropdownMenuLabel>
-                            <DropdownMenuCheckboxItem
-                              checked={structuredTools.mcpServersTools[serverId].every(
-                                (tool) => toolStates[tool.name],
-                              )}
-                              onCheckedChange={(checked) => {
-                                setToolStates((prev) => {
-                                  const newState = { ...prev };
-                                  structuredTools.mcpServersTools[serverId].forEach((tool) => {
-                                    newState[tool.name] = checked;
-                                  });
-                                  return newState;
-                                });
-                              }}
-                              onSelect={(e) => e.preventDefault()}
-                            >
-                              Select All
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                              checked={structuredTools.mcpServersTools[serverId].every(
-                                (tool) => !toolStates[tool.name],
-                              )}
-                              onCheckedChange={(checked) => {
-                                setToolStates((prev) => {
-                                  const newState = { ...prev };
-                                  structuredTools.mcpServersTools[serverId].forEach((tool) => {
-                                    newState[tool.name] = !checked;
-                                  });
-                                  return newState;
-                                });
-                              }}
-                              onSelect={(e) => e.preventDefault()}
-                            >
-                              Deselect All
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuSeparator />
-                            {structuredTools.mcpServersTools[serverId].map((tool) => (
-                              <TooltipProvider key={tool.name}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <DropdownMenuCheckboxItem
-                                      checked={toolStates[tool.name] || false}
-                                      onCheckedChange={(checked) =>
-                                        setToolStates((prev) => ({
-                                          ...prev,
-                                          [tool.name]: checked,
-                                        }))
-                                      }
-                                      className={toolStates[tool.name] ? 'bg-accent' : ''}
-                                      onSelect={(e) => e.preventDefault()}
-                                    >
-                                      {tool.name}
-                                    </DropdownMenuCheckboxItem>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{tool.description}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ))}
-                              </div>
-                            </PromptInputActionMenuContent>
-                          </PromptInputActionMenu>
-                        ))}
-                      </div>
-                    </PromptInputActionMenuContent>
-                  </PromptInputActionMenu>
-                </div>
-              )}
+              <ToolSelection
+                structuredTools={structuredTools}
+                toolStates={toolStates}
+                setToolStates={setToolStates}
+              />
 
               <div className="ml-2"> {/* Wrap in a div and apply margin here */}
                 <PromptInputModelSelect
@@ -453,7 +166,10 @@ const ChatPage = () => {
                 </PromptInputModelSelect>
               </div>
             </PromptInputTools>
-            <PromptInputSubmit disabled={!input && !status} status={status} />
+            <PromptInputSubmit 
+              disabled={!input || status === 'submitted' || isCreatingChat} 
+              status={isCreatingChat ? 'submitted' : status} 
+            />
           </PromptInputToolbar>
         </PromptInput>
       </div>
@@ -461,4 +177,4 @@ const ChatPage = () => {
   );
 };
 
-export default ChatPage;
+export default NewChatPage;

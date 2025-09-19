@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -6,11 +7,11 @@ export default function Home() {
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         <div className="flex flex-col items-center sm:items-start gap-4">
           <h1 className="text-3xl font-bold">Welcome</h1>
-          <Button asChild>
-            <a href="/chat" className="inline-flex items-center px-4 py-2">
+          <Link href="/chat" passHref>
+            <Button className="inline-flex items-center px-4 py-2">
               Go to Chat
-            </a>
-          </Button>
+            </Button>
+          </Link>
         </div>
       </main>
     </div>
