@@ -51,6 +51,16 @@ export function ChatSidebar() {
     };
 
     fetchChats();
+
+    const handleChatCreated = () => {
+      fetchChats();
+    };
+
+    window.addEventListener('chatCreated', handleChatCreated);
+
+    return () => {
+      window.removeEventListener('chatCreated', handleChatCreated);
+    };
   }, []);
 
   const handleDeleteChat = async (chatId: number) => {

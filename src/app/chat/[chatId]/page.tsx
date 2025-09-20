@@ -139,6 +139,8 @@ const ChatPage = () => {
               chatId: chatId,
               skipStream: true // Add flag to just create chat without streaming response
             }),
+          }).then(() => {
+            window.dispatchEvent(new Event('chatCreated'));
           }).catch(error => {
             console.error('Error creating chat:', error);
           });
