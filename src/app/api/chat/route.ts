@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     chatId: incomingChatId,
     action, // 'createChat' or 'sendMessage'
     skipStream,
+    userId,
   }: {
     messages: UIMessage[];
     model: string;
@@ -40,22 +41,28 @@ export async function POST(req: Request) {
     toolStates: Record<string, boolean>;
     chatId?: string;
     action?: 'createChat' | 'sendMessage';
-    skipStream?: boolean; // New flag
+    skipStream?: boolean;
+    userId?: string;
   } = await req.json();
 
   let currentChatId = incomingChatId;
   let allMessages: UIMessage[] = [];
 
-  // Ensure a user with ID 1 exists for now, as userId is hardcoded to 1
-  let user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, 1) });
+  // Ensure userId is provided
+  if (!userId) {
+    return new Response('User ID is required', { status: 400 });
+  }
+
+  // Ensure a user with the provided ID exists
+  let user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, userId) });
   if (!user) {
-    // Insert a default user if not found
+    // Insert a new user if not found
     await db.insert(usersTable).values({
-      id: 1,
-      name: 'Default User',
-      email: 'default@example.com', // Default email
+      id: userId,
+      name: 'Local User',
+      email: `${userId}@example.com`, // Use userId for a unique email
     }).run();
-    user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, 1) }); // Re-fetch the user
+    user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, userId) }); // Re-fetch the user
   }
 
   // Handle chat creation separately
@@ -69,7 +76,7 @@ export async function POST(req: Request) {
     currentChatId = uuidv4(); // Generate a UUID v4 for the new chat ID
     await db.insert(chatsTable).values({
       id: currentChatId,
-      userId: 1, // TODO: Replace with actual user ID
+      userId: userId,
       title: title,
     }).run();
 
@@ -94,7 +101,7 @@ export async function POST(req: Request) {
     currentChatId = uuidv4(); // Generate a UUID v4 for the new chat ID
     await db.insert(chatsTable).values({
       id: currentChatId,
-      userId: 1, // TODO: Replace with actual user ID
+      userId: userId,
       title: title,
     }).run();
   }
@@ -114,7 +121,7 @@ export async function POST(req: Request) {
     // Create chat with pre-generated ID
     await db.insert(chatsTable).values({
       id: currentChatId,
-      userId: 1, // TODO: Replace with actual user ID
+      userId: userId,
       title: title,
     }).run();
   }

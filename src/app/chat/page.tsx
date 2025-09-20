@@ -24,6 +24,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { v4 as uuidv4 } from 'uuid';
+import { useUser } from '@/hooks/use-user';
 
 import { ToolSelection, StructuredToolInfo } from '@/components/ai-elements/tool-selection';
 import { models } from '@/lib/models';
@@ -37,6 +38,7 @@ const NewChatPage = () => {
   const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({ defaultTools: [], mcpServersTools: {} });
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const { status } = useChat({});
+  const userId = useUser();
 
   useEffect(() => {
     const fetchTools = async () => {
@@ -67,6 +69,8 @@ const NewChatPage = () => {
   }, []);
 
   const handleSubmit = async (message: PromptInputMessage) => {
+    if (!userId) return; // Prevent submission if userId is not available
+
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
 
@@ -83,7 +87,8 @@ const NewChatPage = () => {
       files: message.files,
       model: model,
       toolStates: toolStates,
-      timestamp: Date.now() // Add timestamp to handle stale data
+      timestamp: Date.now(), // Add timestamp to handle stale data
+      userId: userId, // Add userId here
     };
     
     // Use both sessionStorage and URL params for redundancy
@@ -142,7 +147,7 @@ const NewChatPage = () => {
               </div>
             </PromptInputTools>
             <PromptInputSubmit 
-              disabled={!input || status === 'submitted' || isCreatingChat} 
+              disabled={!input || status === 'submitted' || isCreatingChat || !userId} 
               status={isCreatingChat ? 'submitted' : status} 
             />
           </PromptInputToolbar>

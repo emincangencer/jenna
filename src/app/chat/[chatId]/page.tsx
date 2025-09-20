@@ -57,6 +57,7 @@ import { Loader } from '@/components/ai-elements/loader';
 import { type ToolUIPart } from 'ai';
 import { ToolSelection, StructuredToolInfo } from '@/components/ai-elements/tool-selection';
 import { models } from '@/lib/models';
+import { useUser } from '@/hooks/use-user';
 
 interface DbMessage {
   id: number;
@@ -85,6 +86,7 @@ const ChatPage = () => {
   const [isInitializing, setIsInitializing] = useState(isNewChat);
   const initialMessageSentRef = useRef(false);
   const chatCreatedRef = useRef(false);
+  const userId = useUser(); // Get userId here
 
   const { messages, setMessages, sendMessage, status, regenerate } = useChat({
     id: chatId,
@@ -92,7 +94,7 @@ const ChatPage = () => {
 
   // Handle new chat initialization
   useEffect(() => {
-    if (!isNewChat || initialMessageSentRef.current) return;
+    if (!isNewChat || initialMessageSentRef.current || !userId) return; // Add userId check
 
     const initializeNewChat = async () => {
       const chatInitData = sessionStorage.getItem(`chat-init-${chatId}`);
@@ -102,10 +104,10 @@ const ChatPage = () => {
       }
 
       try {
-        const { message, files, model: storedModel, toolStates: storedToolStates, timestamp } = JSON.parse(chatInitData);
+        const { message, files, model: storedModel, toolStates: storedToolStates, timestamp, userId: storedUserId } = JSON.parse(chatInitData);
         
-        // Check if data is stale (older than 5 seconds)
-        if (Date.now() - timestamp > 5000) {
+        // Check if data is stale (older than 5 seconds) or userId mismatch
+        if (Date.now() - timestamp > 5000 || storedUserId !== userId) {
           sessionStorage.removeItem(`chat-init-${chatId}`);
           setIsInitializing(false);
           return;
@@ -137,7 +139,8 @@ const ChatPage = () => {
               enableRunCommand: storedToolStates['runShellCommand'] || false,
               toolStates: storedToolStates,
               chatId: chatId,
-              skipStream: true // Add flag to just create chat without streaming response
+              skipStream: true, // Add flag to just create chat without streaming response
+              userId: userId, // Add userId here
             }),
           }).then(() => {
             window.dispatchEvent(new Event('chatCreated'));
@@ -160,6 +163,7 @@ const ChatPage = () => {
               enableRunCommand: storedToolStates['runShellCommand'] || false,
               toolStates: storedToolStates,
               chatId: chatId,
+              userId: userId, // Add userId here
             },
           },
         );
@@ -177,11 +181,11 @@ const ChatPage = () => {
     };
 
     initializeNewChat();
-  }, [isNewChat, chatId, sendMessage, setMessages]);
+  }, [isNewChat, chatId, sendMessage, setMessages, userId]); // Add userId to dependency array
 
   // Fetch existing messages for non-new chats
   useEffect(() => {
-    if (isNewChat || messages.length > 0) return;
+    if (isNewChat || messages.length > 0 || !userId) return; // Add userId check
 
     const fetchInitialMessages = async () => {
       try {
@@ -202,7 +206,7 @@ const ChatPage = () => {
     };
 
     fetchInitialMessages();
-  }, [chatId, isNewChat, setMessages, messages.length]);
+  }, [chatId, isNewChat, setMessages, messages.length, userId]); // Add userId to dependency array
 
   // Fetch tools
   useEffect(() => {
@@ -237,6 +241,8 @@ const ChatPage = () => {
   }, [isNewChat]);
 
   const handleSubmit = (message: PromptInputMessage) => {
+    if (!userId) return; // Prevent submission if userId is not available
+
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
 
@@ -260,6 +266,7 @@ const ChatPage = () => {
           enableRunCommand: toolStates['runShellCommand'] || false,
           toolStates: toolStates,
           chatId: chatId,
+          userId: userId, // Add userId here
         },
       },
     );
@@ -312,6 +319,7 @@ const ChatPage = () => {
                                   body: {
                                     model: model,
                                     ...toolStates,
+                                    userId: userId, // Add userId here
                                   },
                                 })}
                                 label="Retry"
@@ -423,7 +431,7 @@ const ChatPage = () => {
                 </PromptInputModelSelect>
               </div>
             </PromptInputTools>
-            <PromptInputSubmit disabled={!input || status === 'submitted'} status={status} />
+            <PromptInputSubmit disabled={!input || status === 'submitted' || !userId} status={status} />
           </PromptInputToolbar>
         </PromptInput>
       </div>
