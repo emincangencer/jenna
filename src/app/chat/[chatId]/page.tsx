@@ -405,11 +405,38 @@ const ChatPage = () => {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
 
-              <ToolSelection
+                <ToolSelection
                 structuredTools={structuredTools}
                 toolStates={toolStates}
                 setToolStates={setToolStates}
-              />
+                onReloadTools={() => {
+                  (async () => {
+                  try {
+                    const response = await fetch('/api/tools');
+                    if (!response.ok) {
+                    throw new Error('Failed to fetch tools');
+                    }
+                    const data: StructuredToolInfo = await response.json();
+                    setStructuredTools(data);
+
+                    const initialToolStates: Record<string, boolean> = {};
+                    data.defaultTools.forEach((tool) => {
+                    initialToolStates[tool.name] = false;
+                    });
+                    for (const serverId in data.mcpServersTools) {
+                    data.mcpServersTools[serverId].forEach((tool) => {
+                      initialToolStates[tool.name] = false;
+                    });
+                    }
+
+                    // Preserve any existing tool toggles, but ensure new tools are present
+                    setToolStates((prev) => ({ ...initialToolStates, ...prev }));
+                  } catch (error) {
+                    console.error('Error reloading tools:', error);
+                  }
+                  })();
+                }}
+                />
 
               <div className="ml-2">
                 <PromptInputModelSelect

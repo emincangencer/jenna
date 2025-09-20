@@ -30,6 +30,12 @@ interface Settings {
 }
 
 async function initializeMcpClients() {
+  // Clear existing clients and tools
+  mcpClients.length = 0;
+  for (const key in mcpServersTools) {
+    delete mcpServersTools[key];
+  }
+
   // Fetch settings to get MCP server configurations
   let settings: Settings = {};
   try {
@@ -100,5 +106,10 @@ async function initializeMcpClients() {
 initializeMcpClients();
 
 export async function GET() {
+  return NextResponse.json({ defaultTools, mcpServersTools });
+}
+
+export async function POST() {
+  await initializeMcpClients();
   return NextResponse.json({ defaultTools, mcpServersTools });
 }

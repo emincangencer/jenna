@@ -98,6 +98,40 @@ const NewChatPage = () => {
     router.push(`/chat/${newChatId}?new=true`);
   };
 
+  const handleReloadTools = async () => {
+    try {
+      // Trigger reinitialization on the backend
+      const postResponse = await fetch('/api/tools', {
+        method: 'POST',
+      });
+      if (!postResponse.ok) {
+        throw new Error('Failed to reinitialize tools on backend');
+      }
+
+      // Fetch the newly updated tools
+      const getResponse = await fetch('/api/tools');
+      if (!getResponse.ok) {
+        throw new Error('Failed to fetch tools after reload');
+      }
+      const data: StructuredToolInfo = await getResponse.json();
+      setStructuredTools(data);
+
+      // Reset tool states based on newly fetched tools
+      const initialToolStates: Record<string, boolean> = {};
+      data.defaultTools.forEach(tool => {
+        initialToolStates[tool.name] = false;
+      });
+      for (const serverId in data.mcpServersTools) {
+        data.mcpServersTools[serverId].forEach(tool => {
+          initialToolStates[tool.name] = false;
+        });
+      }
+      setToolStates(initialToolStates);
+    } catch (error) {
+      console.error('Error reloading tools:', error);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
       <div className="flex flex-col h-full justify-end">
@@ -124,6 +158,7 @@ const NewChatPage = () => {
                 structuredTools={structuredTools}
                 toolStates={toolStates}
                 setToolStates={setToolStates}
+                onReloadTools={handleReloadTools}
               />
 
               <div className="ml-2">

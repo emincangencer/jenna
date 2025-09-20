@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RotateCw } from "lucide-react";
 import {
   PromptInputActionMenu,
   PromptInputActionMenuContent,
@@ -31,12 +31,14 @@ interface ToolSelectionProps {
   structuredTools: StructuredToolInfo;
   toolStates: Record<string, boolean>;
   setToolStates: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onReloadTools: () => void;
 }
 
 export const ToolSelection: React.FC<ToolSelectionProps> = ({
   structuredTools,
   toolStates,
   setToolStates,
+  onReloadTools,
 }) => {
   return (
     <>
@@ -54,7 +56,22 @@ export const ToolSelection: React.FC<ToolSelectionProps> = ({
               </span>
             </PromptInputActionMenuTrigger>
             <PromptInputActionMenuContent>
-              <div className="p-2 w-64 overflow-hidden">
+              <div className="relative p-2 w-64 overflow-hidden">
+                <div className="absolute top-2 right-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <RotateCw
+                          className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground"
+                          onClick={onReloadTools}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Reload MCP Tools</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 {structuredTools.defaultTools.length > 0 && (
                   <>
                     <DropdownMenuLabel>Default Tools:</DropdownMenuLabel>
