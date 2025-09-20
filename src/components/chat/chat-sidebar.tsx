@@ -29,7 +29,7 @@ interface Chat {
   title: string;
 }
 
-export function ChatSidebar() {
+export function ChatSidebar({ currentChatId }: { currentChatId?: string }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +92,7 @@ export function ChatSidebar() {
               {error && <SidebarMenuItem className="text-red-500">Error: {error}</SidebarMenuItem>}
               {!loading && chats.length === 0 && <SidebarMenuItem>No chats found.</SidebarMenuItem>}
               {chats.map((chat) => (
-                <SidebarMenuItem key={chat.id} className="flex justify-between items-center group/item">
+                <SidebarMenuItem key={chat.id} className={`flex justify-between items-center group/item ${chat.id.toString() === currentChatId ? 'bg-muted' : ''}`}>
                   <SidebarMenuButton asChild>
                     <Link href={`/chat/${chat.id}`} className="flex-grow">
                       {chat.title}
