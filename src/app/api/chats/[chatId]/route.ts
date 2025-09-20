@@ -3,7 +3,10 @@ import { chatsTable, messagesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ chatId: string }> }) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ chatId: string }> },
+) {
   try {
     const { chatId } = await params;
 

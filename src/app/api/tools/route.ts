@@ -49,7 +49,11 @@ async function initializeMcpClients() {
     // Proceed with empty settings if fetching fails
   }
 
-  if (settings.mcpServers && typeof settings.mcpServers === 'object' && settings.mcpServers !== null) {
+  if (
+    settings.mcpServers &&
+    typeof settings.mcpServers === 'object' &&
+    settings.mcpServers !== null
+  ) {
     for (const serverId in settings.mcpServers) {
       const serverConfig = settings.mcpServers[serverId];
       try {
@@ -93,7 +97,10 @@ async function initializeMcpClients() {
         const tools = await client.tools();
         mcpServersTools[serverId] = []; // Initialize array for this server
         for (const toolName in tools) {
-          mcpServersTools[serverId].push({ name: toolName, description: tools[toolName].description || 'No description provided.' });
+          mcpServersTools[serverId].push({
+            name: toolName,
+            description: tools[toolName].description || 'No description provided.',
+          });
         }
       } catch (e) {
         console.error(`Failed to initialize MCP client for server ${serverConfig.id}:`, e);

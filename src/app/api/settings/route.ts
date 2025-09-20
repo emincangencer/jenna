@@ -4,7 +4,11 @@ import path from 'path';
 import os from 'os';
 
 function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
-  return error instanceof Error && 'code' in error && typeof (error as NodeJS.ErrnoException).code === 'string';
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof (error as NodeJS.ErrnoException).code === 'string'
+  );
 }
 
 export async function GET() {

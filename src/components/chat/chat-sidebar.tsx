@@ -1,8 +1,8 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import Link from "next/link"
-import { useState, useEffect } from "react"
+import * as React from 'react';
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 import {
   Sidebar,
@@ -14,15 +14,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
-import { MoreHorizontal } from "lucide-react"
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal } from 'lucide-react';
 
 interface Chat {
   id: number;
@@ -37,7 +37,7 @@ export function ChatSidebar({ currentChatId }: { currentChatId?: string }) {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const response = await fetch("/api/chat/list");
+        const response = await fetch('/api/chat/list');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -66,7 +66,7 @@ export function ChatSidebar({ currentChatId }: { currentChatId?: string }) {
   const handleDeleteChat = async (chatId: number) => {
     try {
       const response = await fetch(`/api/chats/${chatId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       if (!response.ok) {
@@ -81,52 +81,56 @@ export function ChatSidebar({ currentChatId }: { currentChatId?: string }) {
 
   return (
     <Sidebar>
-        <SidebarHeader className="mt-16">
-          <SidebarInput placeholder="Search chats..." />
-        </SidebarHeader>
+      <SidebarHeader className="mt-16">
+        <SidebarInput placeholder="Search chats..." />
+      </SidebarHeader>
 
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu>
-              {loading && <SidebarMenuItem>Loading chats...</SidebarMenuItem>}
-              {error && <SidebarMenuItem className="text-red-500">Error: {error}</SidebarMenuItem>}
-              {!loading && chats.length === 0 && <SidebarMenuItem>No chats found.</SidebarMenuItem>}
-              {chats.map((chat) => (
-                <SidebarMenuItem key={chat.id} className={`flex justify-between items-center group/item ${chat.id.toString() === currentChatId ? 'bg-muted' : ''}`}>
-                  <SidebarMenuButton asChild>
-                    <Link href={`/chat/${chat.id}`} className="flex-grow overflow-hidden whitespace-nowrap text-ellipsis">
-                      {chat.title}
-                    </Link>
-                  </SidebarMenuButton>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover/item:opacity-100"
-                        aria-label="More options"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarMenu>
+            {loading && <SidebarMenuItem>Loading chats...</SidebarMenuItem>}
+            {error && <SidebarMenuItem className="text-red-500">Error: {error}</SidebarMenuItem>}
+            {!loading && chats.length === 0 && <SidebarMenuItem>No chats found.</SidebarMenuItem>}
+            {chats.map((chat) => (
+              <SidebarMenuItem
+                key={chat.id}
+                className={`group/item flex items-center justify-between ${chat.id.toString() === currentChatId ? 'bg-muted' : ''}`}
+              >
+                <SidebarMenuButton asChild>
+                  <Link
+                    href={`/chat/${chat.id}`}
+                    className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                  >
+                    {chat.title}
+                  </Link>
+                </SidebarMenuButton>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover/item:opacity-100"
+                      aria-label="More options"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
 
-        <SidebarFooter>
-          {/* Placeholder for footer content */}
-          <p className="text-sm text-center text-gray-500">
-            Jenna AI
-          </p>
-        </SidebarFooter>
-      </Sidebar>
-  )
+      <SidebarFooter>
+        {/* Placeholder for footer content */}
+        <p className="text-center text-sm text-gray-500">Jenna AI</p>
+      </SidebarFooter>
+    </Sidebar>
+  );
 }

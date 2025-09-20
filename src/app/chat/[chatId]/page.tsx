@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from 'next/navigation';
 import {
   Conversation,
   ConversationContent,
@@ -27,25 +27,13 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input';
-import {
-  Actions,
-  Action
-} from '@/components/ai-elements/actions';
+import { Actions, Action } from '@/components/ai-elements/actions';
 import { useState, Fragment, useEffect, useRef } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Response } from '@/components/ai-elements/response';
 import { RefreshCcwIcon, CopyIcon } from 'lucide-react';
-import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from '@/components/ai-elements/sources';
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
+import { Source, Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources';
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning';
 import {
   Tool,
   ToolContent,
@@ -82,7 +70,10 @@ const ChatPage = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [toolStates, setToolStates] = useState<Record<string, boolean>>({});
-  const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({ defaultTools: [], mcpServersTools: {} });
+  const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({
+    defaultTools: [],
+    mcpServersTools: {},
+  });
   const [isInitializing, setIsInitializing] = useState(isNewChat);
   const initialMessageSentRef = useRef(false);
   const chatCreatedRef = useRef(false);
@@ -104,8 +95,15 @@ const ChatPage = () => {
       }
 
       try {
-        const { message, files, model: storedModel, toolStates: storedToolStates, timestamp, userId: storedUserId } = JSON.parse(chatInitData);
-        
+        const {
+          message,
+          files,
+          model: storedModel,
+          toolStates: storedToolStates,
+          timestamp,
+          userId: storedUserId,
+        } = JSON.parse(chatInitData);
+
         // Check if data is stale (older than 5 seconds) or userId mismatch
         if (Date.now() - timestamp > 5000 || storedUserId !== userId) {
           sessionStorage.removeItem(`chat-init-${chatId}`);
@@ -116,8 +114,6 @@ const ChatPage = () => {
         // Update states from stored data
         setModel(storedModel);
         setToolStates(storedToolStates);
-
-
 
         // Create chat and send message in parallel
         initialMessageSentRef.current = true;
@@ -142,11 +138,13 @@ const ChatPage = () => {
               skipStream: true, // Add flag to just create chat without streaming response
               userId: userId, // Add userId here
             }),
-          }).then(() => {
-            window.dispatchEvent(new Event('chatCreated'));
-          }).catch(error => {
-            console.error('Error creating chat:', error);
-          });
+          })
+            .then(() => {
+              window.dispatchEvent(new Event('chatCreated'));
+            })
+            .catch((error) => {
+              console.error('Error creating chat:', error);
+            });
         }
 
         // Send the actual message for AI response
@@ -171,7 +169,7 @@ const ChatPage = () => {
         // Clean up
         sessionStorage.removeItem(`chat-init-${chatId}`);
         setIsInitializing(false);
-        
+
         // Remove the ?new=true from URL without causing a reload
         window.history.replaceState({}, '', `/chat/${chatId}`);
       } catch (error) {
@@ -222,11 +220,11 @@ const ChatPage = () => {
         // Only set initial tool states if we don't have them from new chat
         if (!isNewChat) {
           const initialToolStates: Record<string, boolean> = {};
-          data.defaultTools.forEach(tool => {
+          data.defaultTools.forEach((tool) => {
             initialToolStates[tool.name] = false;
           });
           for (const serverId in data.mcpServersTools) {
-            data.mcpServersTools[serverId].forEach(tool => {
+            data.mcpServersTools[serverId].forEach((tool) => {
               initialToolStates[tool.name] = false;
             });
           }
@@ -253,7 +251,7 @@ const ChatPage = () => {
     sendMessage(
       {
         text: message.text || 'Sent with attachments',
-        files: message.files
+        files: message.files,
       },
       {
         body: {
@@ -274,63 +272,58 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
-      <div className="flex flex-col h-full">
+    <div className="relative mx-auto size-full h-screen max-w-4xl p-6">
+      <div className="flex h-full flex-col">
         <Conversation className="h-full">
           <ConversationContent>
             {messages.map((message) => (
               <div key={message.id}>
-                {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                  <Sources>
-                    <SourcesTrigger
-                      count={
-                        message.parts.filter(
-                          (part) => part.type === 'source-url',
-                        ).length
-                      }
-                    />
-                    {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                      <SourcesContent key={`${message.id}-${i}`}>
-                        <Source
-                          key={`${message.id}-${i}`}
-                          href={part.url}
-                          title={part.url}
-                        />
-                      </SourcesContent>
-                    ))}
-                  </Sources>
-                )}
+                {message.role === 'assistant' &&
+                  message.parts.filter((part) => part.type === 'source-url').length > 0 && (
+                    <Sources>
+                      <SourcesTrigger
+                        count={message.parts.filter((part) => part.type === 'source-url').length}
+                      />
+                      {message.parts
+                        .filter((part) => part.type === 'source-url')
+                        .map((part, i) => (
+                          <SourcesContent key={`${message.id}-${i}`}>
+                            <Source key={`${message.id}-${i}`} href={part.url} title={part.url} />
+                          </SourcesContent>
+                        ))}
+                    </Sources>
+                  )}
                 {message.parts.map((part, i) => {
                   switch (part.type) {
                     case 'text':
                       return (
                         <Fragment key={`${message.id}-${i}`}>
                           <Message from={message.role}>
-                            <MessageContent variant={message.role === 'assistant' ? 'fullWidth' : 'contained'}>
-                              <Response>
-                                {part.text}
-                              </Response>
+                            <MessageContent
+                              variant={message.role === 'assistant' ? 'fullWidth' : 'contained'}
+                            >
+                              <Response>{part.text}</Response>
                             </MessageContent>
                           </Message>
                           {message.role === 'assistant' && i === messages.length - 1 && (
                             <Actions className="mt-2">
                               <Action
-                                onClick={() => regenerate({
-                                  body: {
-                                    model: model,
-                                    ...toolStates,
-                                    userId: userId, // Add userId here
-                                  },
-                                })}
+                                onClick={() =>
+                                  regenerate({
+                                    body: {
+                                      model: model,
+                                      ...toolStates,
+                                      userId: userId, // Add userId here
+                                    },
+                                  })
+                                }
                                 label="Retry"
                                 tooltip="Retry"
                               >
                                 <RefreshCcwIcon className="size-3" />
                               </Action>
                               <Action
-                                onClick={() =>
-                                  navigator.clipboard.writeText(part.text)
-                                }
+                                onClick={() => navigator.clipboard.writeText(part.text)}
                                 label="Copy"
                                 tooltip="Copy"
                               >
@@ -345,36 +338,51 @@ const ChatPage = () => {
                         <Reasoning
                           key={`${message.id}-${i}`}
                           className="w-full"
-                          isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
+                          isStreaming={
+                            status === 'streaming' &&
+                            i === message.parts.length - 1 &&
+                            message.id === messages.at(-1)?.id
+                          }
                         >
                           <ReasoningTrigger />
                           <ReasoningContent>{part.text}</ReasoningContent>
                         </Reasoning>
                       );
                     case 'dynamic-tool':
-                    case part.type.startsWith('tool-') ? part.type : 'never':
-                      {
-                        type AnyToolUIPart = ToolUIPart<Record<string, { input: unknown; output: unknown }>>;
-                        const genericTool = part as AnyToolUIPart;
-                        const toolName = (typeof genericTool === 'object' && genericTool !== null && 'toolName' in genericTool && typeof (genericTool as { toolName: unknown }).toolName === 'string')
+                    case part.type.startsWith('tool-') ? part.type : 'never': {
+                      type AnyToolUIPart = ToolUIPart<
+                        Record<string, { input: unknown; output: unknown }>
+                      >;
+                      const genericTool = part as AnyToolUIPart;
+                      const toolName =
+                        typeof genericTool === 'object' &&
+                        genericTool !== null &&
+                        'toolName' in genericTool &&
+                        typeof (genericTool as { toolName: unknown }).toolName === 'string'
                           ? (genericTool as { toolName: string }).toolName
-                          : (typeof genericTool === 'object' && genericTool !== null && 'name' in genericTool && typeof (genericTool as { name: unknown }).name === 'string')
+                          : typeof genericTool === 'object' &&
+                              genericTool !== null &&
+                              'name' in genericTool &&
+                              typeof (genericTool as { name: unknown }).name === 'string'
                             ? (genericTool as { name: string }).name
                             : part.type.replace('tool-', '');
 
-                        return (
-                          <Tool key={`${message.id}-${i}`} defaultOpen={false}>
-                            <ToolHeader type={`tool-${toolName}` as `tool-${string}`} state={genericTool.state} />
-                            <ToolContent>
-                              <ToolInput input={genericTool.input as Record<string, unknown>} />
-                              <ToolOutput
-                                output={genericTool.output as Record<string, unknown>}
-                                errorText={genericTool.errorText}
-                              />
-                            </ToolContent>
-                          </Tool>
-                        );
-                      }
+                      return (
+                        <Tool key={`${message.id}-${i}`} defaultOpen={false}>
+                          <ToolHeader
+                            type={`tool-${toolName}` as `tool-${string}`}
+                            state={genericTool.state}
+                          />
+                          <ToolContent>
+                            <ToolInput input={genericTool.input as Record<string, unknown>} />
+                            <ToolOutput
+                              output={genericTool.output as Record<string, unknown>}
+                              errorText={genericTool.errorText}
+                            />
+                          </ToolContent>
+                        </Tool>
+                      );
+                    }
                     default:
                       return null;
                   }
@@ -391,10 +399,7 @@ const ChatPage = () => {
             <PromptInputAttachments>
               {(attachment) => <PromptInputAttachment data={attachment} />}
             </PromptInputAttachments>
-            <PromptInputTextarea
-              onChange={(e) => setInput(e.target.value)}
-              value={input}
-            />
+            <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
           </PromptInputBody>
           <PromptInputToolbar>
             <PromptInputTools>
@@ -411,29 +416,32 @@ const ChatPage = () => {
                 setToolStates={setToolStates}
                 onReloadTools={() => {
                   (async () => {
-                  try {
-                    const response = await fetch('/api/tools');
-                    if (!response.ok) {
-                    throw new Error('Failed to fetch tools');
-                    }
-                    const data: StructuredToolInfo = await response.json();
-                    setStructuredTools(data);
+                    try {
+                      const response = await fetch('/api/tools');
+                      if (!response.ok) {
+                        throw new Error('Failed to fetch tools');
+                      }
+                      const data: StructuredToolInfo = await response.json();
+                      setStructuredTools(data);
 
-                    const initialToolStates: Record<string, boolean> = {};
-                    data.defaultTools.forEach((tool) => {
-                    initialToolStates[tool.name] = false;
-                    });
-                    for (const serverId in data.mcpServersTools) {
-                    data.mcpServersTools[serverId].forEach((tool) => {
-                      initialToolStates[tool.name] = false;
-                    });
-                    }
+                      const initialToolStates: Record<string, boolean> = {};
+                      data.defaultTools.forEach((tool) => {
+                        initialToolStates[tool.name] = false;
+                      });
+                      for (const serverId in data.mcpServersTools) {
+                        data.mcpServersTools[serverId].forEach((tool) => {
+                          initialToolStates[tool.name] = false;
+                        });
+                      }
 
-                    // Preserve any existing tool toggles, but ensure new tools are present
-                    setToolStates((prev) => ({ ...initialToolStates, ...prev }));
-                  } catch (error) {
-                    console.error('Error reloading tools:', error);
-                  }
+                      // Preserve any existing tool toggles, but ensure new tools are present
+                      setToolStates((prev) => ({
+                        ...initialToolStates,
+                        ...prev,
+                      }));
+                    } catch (error) {
+                      console.error('Error reloading tools:', error);
+                    }
                   })();
                 }}
               />
@@ -458,7 +466,10 @@ const ChatPage = () => {
                 </PromptInputModelSelect>
               </div>
             </PromptInputTools>
-            <PromptInputSubmit disabled={!input || status === 'submitted' || !userId} status={status} />
+            <PromptInputSubmit
+              disabled={!input || status === 'submitted' || !userId}
+              status={status}
+            />
           </PromptInputToolbar>
         </PromptInput>
       </div>

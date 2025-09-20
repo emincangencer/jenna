@@ -35,7 +35,10 @@ const NewChatPage = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [toolStates, setToolStates] = useState<Record<string, boolean>>({});
-  const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({ defaultTools: [], mcpServersTools: {} });
+  const [structuredTools, setStructuredTools] = useState<StructuredToolInfo>({
+    defaultTools: [],
+    mcpServersTools: {},
+  });
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const { status } = useChat({});
   const userId = useUser();
@@ -51,11 +54,11 @@ const NewChatPage = () => {
         setStructuredTools(data);
 
         const initialToolStates: Record<string, boolean> = {};
-        data.defaultTools.forEach(tool => {
+        data.defaultTools.forEach((tool) => {
           initialToolStates[tool.name] = false;
         });
         for (const serverId in data.mcpServersTools) {
-          data.mcpServersTools[serverId].forEach(tool => {
+          data.mcpServersTools[serverId].forEach((tool) => {
             initialToolStates[tool.name] = false;
           });
         }
@@ -90,10 +93,10 @@ const NewChatPage = () => {
       timestamp: Date.now(), // Add timestamp to handle stale data
       userId: userId, // Add userId here
     };
-    
+
     // Use both sessionStorage and URL params for redundancy
     sessionStorage.setItem(`chat-init-${newChatId}`, JSON.stringify(chatInitData));
-    
+
     // Navigate with the chat ID
     router.push(`/chat/${newChatId}?new=true`);
   };
@@ -118,11 +121,11 @@ const NewChatPage = () => {
 
       // Reset tool states based on newly fetched tools
       const initialToolStates: Record<string, boolean> = {};
-      data.defaultTools.forEach(tool => {
+      data.defaultTools.forEach((tool) => {
         initialToolStates[tool.name] = false;
       });
       for (const serverId in data.mcpServersTools) {
-        data.mcpServersTools[serverId].forEach(tool => {
+        data.mcpServersTools[serverId].forEach((tool) => {
           initialToolStates[tool.name] = false;
         });
       }
@@ -133,17 +136,14 @@ const NewChatPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
-      <div className="flex flex-col h-full justify-end">
+    <div className="relative mx-auto size-full h-screen max-w-4xl p-6">
+      <div className="flex h-full flex-col justify-end">
         <PromptInput onSubmit={handleSubmit} className="mt-4" globalDrop multiple>
           <PromptInputBody>
             <PromptInputAttachments>
               {(attachment) => <PromptInputAttachment data={attachment} />}
             </PromptInputAttachments>
-            <PromptInputTextarea
-              onChange={(e) => setInput(e.target.value)}
-              value={input}
-            />
+            <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
           </PromptInputBody>
           <PromptInputToolbar>
             <PromptInputTools>
@@ -181,9 +181,9 @@ const NewChatPage = () => {
                 </PromptInputModelSelect>
               </div>
             </PromptInputTools>
-            <PromptInputSubmit 
-              disabled={!input || status === 'submitted' || isCreatingChat || !userId} 
-              status={isCreatingChat ? 'submitted' : status} 
+            <PromptInputSubmit
+              disabled={!input || status === 'submitted' || isCreatingChat || !userId}
+              status={isCreatingChat ? 'submitted' : status}
             />
           </PromptInputToolbar>
         </PromptInput>
