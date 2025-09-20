@@ -405,7 +405,7 @@ const ChatPage = () => {
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
 
-                <ToolSelection
+              <ToolSelection
                 structuredTools={structuredTools}
                 toolStates={toolStates}
                 setToolStates={setToolStates}
@@ -436,7 +436,7 @@ const ChatPage = () => {
                   }
                   })();
                 }}
-                />
+              />
 
               <div className="ml-2">
                 <PromptInputModelSelect
