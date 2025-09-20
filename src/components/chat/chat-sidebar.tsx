@@ -94,7 +94,7 @@ export function ChatSidebar({ currentChatId }: { currentChatId?: string }) {
               {chats.map((chat) => (
                 <SidebarMenuItem key={chat.id} className={`flex justify-between items-center group/item ${chat.id.toString() === currentChatId ? 'bg-muted' : ''}`}>
                   <SidebarMenuButton asChild>
-                    <Link href={`/chat/${chat.id}`} className="flex-grow">
+                    <Link href={`/chat/${chat.id}`} className="flex-grow overflow-hidden whitespace-nowrap text-ellipsis">
                       {chat.title}
                     </Link>
                   </SidebarMenuButton>
