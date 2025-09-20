@@ -6,9 +6,12 @@ Jenna is an all-purpose AI agent that uses LLMs and supporting tools to perform 
 
 ```
 src/app/api/chat/route.ts
+src/app/api/chat/[chatId]/messages/route.ts
 src/app/api/settings/route.ts
 src/app/api/tools/route.ts
+src/app/api/chat/list/route.ts
 src/app/chat/page.tsx
+src/app/chat/[chatId]/page.tsx
 src/components/ai-elements/*.tsx  # AI-specific UI components
 src/lib/models.ts
 src/lib/tools/*                 # agent tool implementations
