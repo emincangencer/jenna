@@ -1,0 +1,3 @@
+pnpm run precheck
+pnpm prettier --write src/
+git add src/
